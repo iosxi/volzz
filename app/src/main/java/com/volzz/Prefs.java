@@ -6,14 +6,8 @@ import android.content.SharedPreferences;
 /** 設定の保存と、動作確認用の診断情報。 */
 public final class Prefs {
 
-    /** モードA: 押した瞬間に音量を動かす。長押しになったらその 1 段を戻して曲を送る。 */
-    public static final int MODE_IMMEDIATE = 0;
-    /** モードB: 押した瞬間は横取りし、短押しと分かった時点で音量を動かす。 */
-    public static final int MODE_DEFER = 1;
-
     private static final String FILE = "volzz";
     private static final String K_ENABLED = "enabled";
-    private static final String K_MODE = "mode";
     private static final String K_THRESHOLD = "threshold_ms";
     private static final String K_ONLY_PLAYING = "only_while_playing";
     private static final String K_SWAP = "swap";
@@ -40,14 +34,6 @@ public final class Prefs {
 
     public void setEnabled(boolean value) {
         sp.edit().putBoolean(K_ENABLED, value).apply();
-    }
-
-    public int mode() {
-        return sp.getInt(K_MODE, MODE_IMMEDIATE);
-    }
-
-    public void setMode(int value) {
-        sp.edit().putInt(K_MODE, value).apply();
     }
 
     public int thresholdMs() {

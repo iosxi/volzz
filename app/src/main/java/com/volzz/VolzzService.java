@@ -33,11 +33,6 @@ public class VolzzService extends AccessibilityService {
     private boolean armed = false;
     /** この押下で長押しが成立したか。 */
     private boolean longFired = false;
-    /** この押下がモード A（押した瞬間に音量を動かす）か。 */
-    private boolean immediate = false;
-    /** モード A で戻すための、押す直前の音量。-1 は「分からない」。 */
-    private int snapshotStream = -1;
-    private int snapshotVolume = -1;
 
     private final Runnable longPressTask = new Runnable() {
         @Override
@@ -130,8 +125,7 @@ public class VolzzService extends AccessibilityService {
     private boolean handleDown(int code) {
         cancelPending();
 
-        final boolean musicActive = audio.isMusicActive();
-        if (prefs.onlyWhilePlaying() && !musicActive) {
+        if (prefs.onlyWhilePlaying() && !audio.isMusicActive()) {
             // 何も鳴っていないときは完全な素通し。通常の音量操作に影響を残さない。
             reset();
             Prefs.note("素通し（再生中ではない）");
@@ -141,25 +135,20 @@ public class VolzzService extends AccessibilityService {
         armed = true;
         heldKey = code;
         longFired = false;
-        immediate = (prefs.mode() == Prefs.MODE_IMMEDIATE);
-        snapshotStream = -1;
-        snapshotVolume = -1;
-
-        if (immediate) {
-            // 遅延なしで音量を動かす。長押しになったら戻せるよう控えてから動かす。
-            if (musicActive) {
-                snapshotStream = AudioManager.STREAM_MUSIC;
-                snapshotVolume = safeGetVolume(AudioManager.STREAM_MUSIC);
-            }
-            adjustVolume(code, true);
-        }
-
         handler.postDelayed(longPressTask, prefs.thresholdMs());
 
-        // DOWN は必ず握り潰す。ここで通してしまうと、以降の自動リピートは
+        // ここでは音量を動かさない。
+        //
+        // OS は「この押下がこれから長押しになるか」を事前には教えてくれない。
+        // 押した瞬間に動かしてしまうと、長押しだったと分かった時点で戻すしか
+        // なく、音量が 1 段上がってから下がる、という見苦しい動きになる。
+        // だから離される（＝短押しと確定する）まで待つ。短押しの体感遅れは
+        // 判定時間ではなく「実際に押していた時間」なので、軽いタップなら
+        // ほとんど分からない。
+        //
+        // DOWN を握り潰すこと自体も必須。通してしまうと以降の自動リピートは
         // システム側（InputDispatcher）が作るようになり、アクセシビリティの
-        // フィルタを通らなくなる。そうなると曲送りのあとも音量が上がり続け、
-        // volzz には止める手段がなくなる。
+        // フィルタを通らなくなるため、volzz には止める手段がなくなる。
         return true;
     }
 
@@ -171,19 +160,14 @@ public class VolzzService extends AccessibilityService {
         cancelPending();
 
         final boolean wasLongPress = longFired;
-        final boolean wasImmediate = immediate;
         reset();
 
         if (wasLongPress) {
-            // 曲送りは済んでいる。離すまでに音量を動かしてはいけない。
+            // 曲送りは済んでいる。音量には触らない。
             Prefs.note(label(code) + " 長押しから離した（音量は動かさない）");
-        } else if (wasImmediate) {
-            // DOWN の時点で動かしてある。ここでは何もしない。
-            Prefs.note(label(code) + " 短押し → 音量を"
-                    + (code == KeyEvent.KEYCODE_VOLUME_UP ? "上げた" : "下げた"));
         } else {
-            // モード B の短押し。預かったままなので、ここで初めて動かす。
-            adjustVolume(code, true);
+            // 短押しと確定した。預かっていた分をここで初めて反映する。
+            adjustVolume(code);
             Prefs.note(label(code) + " 短押し → 音量を"
                     + (code == KeyEvent.KEYCODE_VOLUME_UP ? "上げた" : "下げた"));
         }
@@ -199,10 +183,6 @@ public class VolzzService extends AccessibilityService {
         longFired = true;
         final int code = heldKey;
 
-        if (immediate) {
-            restoreVolume(code);          // 押した瞬間に動かした 1 段を戻す
-        }
-
         final boolean up = (code == KeyEvent.KEYCODE_VOLUME_UP) != prefs.swap();
         sendMediaKey(up ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
         Prefs.note(label(code) + " 長押し → " + (up ? "次の曲へ" : "前の曲へ"));
@@ -216,44 +196,17 @@ public class VolzzService extends AccessibilityService {
     // 音量とメディアキー
     // ------------------------------------------------------------------
 
-    private void adjustVolume(int code, boolean showUi) {
+    /** 短押しと確定したときだけ呼ぶ。端末本来の音量操作と同じ見え方にする。 */
+    private void adjustVolume(int code) {
         final int direction = (code == KeyEvent.KEYCODE_VOLUME_UP)
                 ? AudioManager.ADJUST_RAISE
                 : AudioManager.ADJUST_LOWER;
-        final int flags = showUi
-                ? (AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND)
-                : 0;
         try {
-            audio.adjustSuggestedStreamVolume(direction, AudioManager.USE_DEFAULT_STREAM_TYPE, flags);
+            audio.adjustSuggestedStreamVolume(direction, AudioManager.USE_DEFAULT_STREAM_TYPE,
+                    AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
         } catch (SecurityException e) {
             // マナーモードや通知制御の絡みで拒否されることがある。
             Prefs.note("音量を変更できませんでした: " + e.getMessage());
-        }
-    }
-
-    /** 長押しと判定される前に 1 段動いてしまった音量を、元の値に戻す。 */
-    private void restoreVolume(int code) {
-        try {
-            if (snapshotStream >= 0 && snapshotVolume >= 0) {
-                if (safeGetVolume(snapshotStream) != snapshotVolume) {
-                    audio.setStreamVolume(snapshotStream, snapshotVolume, 0);
-                }
-            } else {
-                final int back = (code == KeyEvent.KEYCODE_VOLUME_UP)
-                        ? AudioManager.ADJUST_LOWER
-                        : AudioManager.ADJUST_RAISE;
-                audio.adjustSuggestedStreamVolume(back, AudioManager.USE_DEFAULT_STREAM_TYPE, 0);
-            }
-        } catch (SecurityException e) {
-            // 戻せなくても曲送りは続ける。
-        }
-    }
-
-    private int safeGetVolume(int stream) {
-        try {
-            return audio.getStreamVolume(stream);
-        } catch (Exception e) {
-            return -1;
         }
     }
 
@@ -280,9 +233,6 @@ public class VolzzService extends AccessibilityService {
         armed = false;
         heldKey = 0;
         longFired = false;
-        immediate = false;
-        snapshotStream = -1;
-        snapshotVolume = -1;
     }
 
     private static String label(int code) {

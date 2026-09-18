@@ -27,14 +27,10 @@
 
     <string name="threshold_title">長押しと判定する時間</string>
     <string name="threshold_value">%1$d ミリ秒</string>
-    <string name="threshold_desc">短くすると曲送りが速くなりますが、少し長めの音量操作が誤って曲送りになりやすくなります。</string>
+    <string name="threshold_desc">この時間を超えて押し続けると曲送りになります。短くすると曲送りが速くなりますが、少し長めの音量操作が誤って曲送りになりやすくなります。</string>
 
     <string name="mode_title">短押しの扱い</string>
-    <string name="mode_desc">どちらを選んでも、曲送りしたあとはキーを離すまで音量は動きません。</string>
-    <string name="mode_a">遅延なし（おすすめ）</string>
-    <string name="mode_a_desc">押した瞬間に音量が動きます。反応の遅れはありません。長押しになった時点で、その 1 段を押す前の値に戻してから曲を送ります。</string>
-    <string name="mode_b">音量を動かさない</string>
-    <string name="mode_b_desc">キーをいったん預かり、短押しと分かってから音量を動かします。曲送りのときに音量が一瞬も動きませんが、音量操作が判定時間のぶん遅れます。</string>
+    <string name="mode_desc">volzz は音量キーを完全に横取りし、指を離して「短押しだった」と確定してから音量を動かします。そのため曲送りのときに音量が動くことは一度もありません。\n\n短押しの反応が遅れるのは、実際にボタンを押していた時間のぶんだけです。軽くタップするぶんにはほとんど分かりません。押した瞬間に音量を動かしてしまうと、長押しだったと分かった時点で戻すしかなく、音量が 1 段上がってから下がる動きになるため、この方式にしています。</string>
 
     <string name="diag_title">動作確認</string>
     <string name="diag_count">受け取った音量キーイベント: %1$d 回</string>

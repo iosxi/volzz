@@ -110,40 +110,14 @@
             style="@style/Hint"
             android:text="@string/threshold_desc" />
 
-        <!-- モード -->
+        <!-- 短押しの扱い -->
         <TextView
             style="@style/SectionTitle"
             android:text="@string/mode_title" />
 
         <TextView
             style="@style/Hint"
-            android:layout_marginBottom="6dp"
             android:text="@string/mode_desc" />
-
-        <RadioButton
-            android:id="@+id/mode_a"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/mode_a"
-            android:textSize="16sp" />
-
-        <TextView
-            style="@style/Hint"
-            android:layout_marginLeft="32dp"
-            android:text="@string/mode_a_desc" />
-
-        <RadioButton
-            android:id="@+id/mode_b"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/mode_b"
-            android:textSize="16sp" />
-
-        <TextView
-            style="@style/Hint"
-            android:layout_marginLeft="32dp"
-            android:text="@string/mode_b_desc" />
 
         <!-- 動作確認 -->
         <TextView

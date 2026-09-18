@@ -12,7 +12,6 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.CompoundButton;
-import android.widget.RadioButton;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -33,8 +32,6 @@ public class MainActivity extends Activity {
     private Switch swap;
     private SeekBar threshold;
     private TextView thresholdLabel;
-    private RadioButton modeA;
-    private RadioButton modeB;
 
     private final Runnable poll = new Runnable() {
         @Override
@@ -60,8 +57,6 @@ public class MainActivity extends Activity {
         swap = findViewById(R.id.swap);
         threshold = findViewById(R.id.threshold);
         thresholdLabel = findViewById(R.id.threshold_label);
-        modeA = findViewById(R.id.mode_a);
-        modeB = findViewById(R.id.mode_b);
 
         openSettings.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -118,23 +113,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        modeA.setChecked(prefs.mode() == Prefs.MODE_IMMEDIATE);
-        modeB.setChecked(prefs.mode() == Prefs.MODE_DEFER);
-        CompoundButton.OnCheckedChangeListener modeListener =
-                new CompoundButton.OnCheckedChangeListener() {
-                    @Override
-                    public void onCheckedChanged(CompoundButton button, boolean checked) {
-                        if (!checked) {
-                            return;
-                        }
-                        boolean isA = button == modeA;
-                        prefs.setMode(isA ? Prefs.MODE_IMMEDIATE : Prefs.MODE_DEFER);
-                        modeA.setChecked(isA);
-                        modeB.setChecked(!isA);
-                    }
-                };
-        modeA.setOnCheckedChangeListener(modeListener);
-        modeB.setOnCheckedChangeListener(modeListener);
     }
 
     @Override
