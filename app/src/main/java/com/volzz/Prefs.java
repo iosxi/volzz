@@ -15,6 +15,7 @@ public final class Prefs {
     private static final String K_THRESHOLD = "threshold_ms";
     private static final String K_ONLY_PLAYING = "only_while_playing";
     private static final String K_SWAP = "swap";
+    private static final String K_VIBRATE = "vibrate";
 
     public static final int THRESHOLD_MIN = 250;
     public static final int THRESHOLD_MAX = 1000;
@@ -76,6 +77,14 @@ public final class Prefs {
 
     public void setSwap(boolean value) {
         sp.edit().putBoolean(K_SWAP, value).apply();
+    }
+
+    public boolean vibrate() {
+        return sp.getBoolean(K_VIBRATE, true);
+    }
+
+    public void setVibrate(boolean value) {
+        sp.edit().putBoolean(K_VIBRATE, value).apply();
     }
 
     /**

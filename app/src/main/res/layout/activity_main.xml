@@ -77,6 +77,18 @@
             android:text="@string/only_while_playing_desc" />
 
         <Switch
+            android:id="@+id/vibrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/vibrate_label"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/vibrate_desc" />
+
+        <Switch
             android:id="@+id/swap"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

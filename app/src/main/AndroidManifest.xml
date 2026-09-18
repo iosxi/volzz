@@ -2,13 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      volzz は <uses-permission> を一つも必要としない。
+      volzz が要求する権限は VIBRATE ひとつだけ。
         ・メディア操作 : AudioManager#dispatchMediaKeyEvent  (権限不要)
         ・音量操作     : AudioManager#adjustSuggestedStreamVolume (権限不要)
         ・キーの横取り : アクセシビリティサービス (ユーザーが設定画面で有効化)
+        ・曲送りの合図 : Vibrator#vibrate  ← ここだけ権限が要る
+      VIBRATE は保護レベル normal（インストール時に自動で付き、許可を尋ねる
+      ダイアログも出ない）。振動以外には何もできない権限で、v7 で曲送りの
+      手応えを出すために足した。設定でオフにもできる。
       BIND_ACCESSIBILITY_SERVICE は「システムだけがこのサービスに接続できる」
       ことを宣言する保護用で、アプリが要求する権限ではない。
     -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="false"

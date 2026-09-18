@@ -203,6 +203,9 @@ public class VolzzService extends AccessibilityService {
 
         final boolean next = Media.isNext(directionOf(code), prefs.swap());
         Media.sendKey(audio, next ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+        if (prefs.vibrate()) {
+            Media.buzz(this, next);
+        }
         Prefs.note(label(code) + " 長押し → " + (next ? "次の曲へ" : "前の曲へ"));
 
         if (REPEAT_MS > 0) {

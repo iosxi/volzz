@@ -22,6 +22,9 @@
     <string name="only_while_playing_label">再生中だけ介入する</string>
     <string name="only_while_playing_desc">音が鳴っていないときは音量キーを完全に素通しします。</string>
 
+    <string name="vibrate_label">曲送りのときに振動する</string>
+    <string name="vibrate_desc">長押しで曲を送ったときに短く振動します。次の曲は 1 回、前の曲は 2 回。画面を見なくても、どちらに動いたか分かります。</string>
+
     <string name="swap_label">上下を入れ替える</string>
     <string name="swap_desc">音量アップの長押しで前の曲、音量ダウンの長押しで次の曲になります。</string>
 
@@ -41,5 +44,5 @@
     <string name="diag_desc">この画面を開いたまま音量キーを押すと、volzz がキーを受け取れているか確認できます。数字が増えなければキーが届いていません。\n\n画面が消えている間の分は 2 行目に数えます。画面を消して音量キーを押し、画面を点けてからこの画面を開けば、そのときの動きが「最近の動き」に残っています。同じ行は logcat にも出ます（adb logcat -s volzz）。</string>
 
     <string name="perm_title">このアプリが使う権限</string>
-    <string name="perm_desc">なし。インターネット接続も、通知も、位置情報も、ストレージも使いません。必要なのはアクセシビリティ設定での有効化だけです。</string>
+    <string name="perm_desc">振動（VIBRATE）だけ。曲送りの合図に使います。上の「曲送りのときに振動する」をオフにすれば一度も使いません。\n\nインターネット接続も、通知も、位置情報も、ストレージも使いません。ほかに必要なのはアクセシビリティ設定での有効化だけです。</string>
 </resources>

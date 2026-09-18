@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
     private Button openSettings;
     private Switch enabled;
     private Switch onlyWhilePlaying;
+    private Switch vibrate;
     private Switch swap;
     private SeekBar threshold;
     private TextView thresholdLabel;
@@ -54,6 +55,7 @@ public class MainActivity extends Activity {
         openSettings = findViewById(R.id.open_settings);
         enabled = findViewById(R.id.enabled);
         onlyWhilePlaying = findViewById(R.id.only_while_playing);
+        vibrate = findViewById(R.id.vibrate);
         swap = findViewById(R.id.swap);
         threshold = findViewById(R.id.threshold);
         thresholdLabel = findViewById(R.id.threshold_label);
@@ -78,6 +80,17 @@ public class MainActivity extends Activity {
             @Override
             public void onCheckedChanged(CompoundButton button, boolean checked) {
                 prefs.setOnlyWhilePlaying(checked);
+            }
+        });
+
+        vibrate.setChecked(prefs.vibrate());
+        vibrate.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                prefs.setVibrate(checked);
+                if (checked) {
+                    Media.buzz(MainActivity.this, true);   // どんな手応えか確かめられる
+                }
             }
         });
 

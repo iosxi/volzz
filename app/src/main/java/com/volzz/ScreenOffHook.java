@@ -336,6 +336,9 @@ final class ScreenOffHook {
     private void skip(int direction) {
         final boolean next = Media.isNext(direction, prefs.swap());
         Media.sendKey(audio, next ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+        if (prefs.vibrate()) {
+            Media.buzz(context, next);
+        }
         Prefs.note(label(direction) + " 長押し → " + (next ? "次の曲へ" : "前の曲へ")
                 + "（画面消灯中）");
         // 曲送りを受けたプレイヤーが先頭に来るので、続けて長押しできるように押し戻す。
