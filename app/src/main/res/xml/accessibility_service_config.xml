@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  必要最小限の構成。
+    ・accessibilityEventTypes を指定しない = 画面上のイベントを一切受け取らない
+    ・canRetrieveWindowContent="false"     = 画面の内容を読まない
+    ・flagRequestFilterKeyEvents           = キーイベントの横取りだけを要求する
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagRequestFilterKeyEvents"
+    android:canRequestFilterKeyEvents="true"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/service_description"
+    android:notificationTimeout="0"
+    android:summary="@string/service_summary" />

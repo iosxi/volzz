@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">volzz</string>
+
+    <string name="service_description">音量キーの長押しで曲送り・曲戻しをします。画面の内容は一切読み取りません。音量キー以外のキーには触れません。</string>
+    <string name="service_summary">音量キーの長押しで曲送り</string>
+
+    <string name="intro">音量アップの長押しで次の曲へ、音量ダウンの長押しで前の曲へ。短押しはこれまでどおりの音量操作です。</string>
+
+    <string name="status_title">状態</string>
+    <string name="status_running">動作中</string>
+    <string name="status_granted_not_connected">許可済み（サービスの接続待ち）</string>
+    <string name="status_off">停止中 — アクセシビリティ設定で volzz を有効にしてください</string>
+    <string name="status_no_settings">設定画面を開けませんでした</string>
+    <string name="open_settings">アクセシビリティ設定を開く</string>
+    <string name="open_settings_again">アクセシビリティ設定を開く（確認）</string>
+
+    <string name="settings_title">設定</string>
+    <string name="enabled_label">volzz を有効にする</string>
+    <string name="enabled_desc">オフにすると音量キーには一切介入しません。</string>
+
+    <string name="only_while_playing_label">再生中だけ介入する</string>
+    <string name="only_while_playing_desc">音が鳴っていないときは音量キーを完全に素通しします。</string>
+
+    <string name="swap_label">上下を入れ替える</string>
+    <string name="swap_desc">音量アップの長押しで前の曲、音量ダウンの長押しで次の曲になります。</string>
+
+    <string name="threshold_title">長押しと判定する時間</string>
+    <string name="threshold_value">%1$d ミリ秒</string>
+    <string name="threshold_desc">短くすると曲送りが速くなりますが、少し長めの音量操作が誤って曲送りになりやすくなります。</string>
+
+    <string name="mode_title">短押しの扱い</string>
+    <string name="mode_a">遅延なし（おすすめ）</string>
+    <string name="mode_a_desc">短押しは端末本来の処理にそのまま任せます。反応の遅れはありません。長押しのときだけ、動いてしまった音量 1 段を即座に元へ戻します。</string>
+    <string name="mode_b">音量を動かさない</string>
+    <string name="mode_b_desc">キーをいったん預かり、短押しと分かってから音量を動かします。曲送りのときに音量が一瞬も動きませんが、音量操作が判定時間のぶん遅れます。</string>
+
+    <string name="diag_title">動作確認</string>
+    <string name="diag_count">受け取った音量キーイベント: %1$d 回</string>
+    <string name="diag_last">直前の動作: %1$s</string>
+    <string name="diag_desc">この画面を開いたまま音量キーを押すと、volzz がキーを受け取れているか確認できます。数字が増えなければキーが届いていません。</string>
+
+    <string name="perm_title">このアプリが使う権限</string>
+    <string name="perm_desc">なし。インターネット接続も、通知も、位置情報も、ストレージも使いません。必要なのはアクセシビリティ設定での有効化だけです。</string>
+</resources>

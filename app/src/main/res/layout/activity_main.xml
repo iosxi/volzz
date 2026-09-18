@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="32dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/intro"
+            android:textSize="14sp" />
+
+        <!-- 状態 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/status_title" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="@string/status_off" />
+
+        <Button
+            android:id="@+id/open_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/open_settings" />
+
+        <!-- 設定 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/settings_title" />
+
+        <Switch
+            android:id="@+id/enabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/enabled_label"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/enabled_desc" />
+
+        <Switch
+            android:id="@+id/only_while_playing"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/only_while_playing_label"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/only_while_playing_desc" />
+
+        <Switch
+            android:id="@+id/swap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/swap_label"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/swap_desc" />
+
+        <!-- 長押し時間 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/threshold_title" />
+
+        <TextView
+            android:id="@+id/threshold_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/threshold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/threshold_desc" />
+
+        <!-- モード -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/mode_title" />
+
+        <RadioButton
+            android:id="@+id/mode_a"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mode_a"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:layout_marginLeft="32dp"
+            android:text="@string/mode_a_desc" />
+
+        <RadioButton
+            android:id="@+id/mode_b"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/mode_b"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:layout_marginLeft="32dp"
+            android:text="@string/mode_b_desc" />
+
+        <!-- 動作確認 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/diag_title" />
+
+        <TextView
+            android:id="@+id/diag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="14sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/diag_desc" />
+
+        <!-- 権限 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/perm_title" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/perm_desc" />
+
+    </LinearLayout>
+</ScrollView>

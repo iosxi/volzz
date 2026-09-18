@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 上下の矢印（音量キー）と音符を組み合わせた図。108dp 四方、安全域は中央 72dp。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 上向き矢印 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,30 L44,42 L38,42 L38,52 L30,52 L30,42 L24,42 Z" />
+
+    <!-- 下向き矢印 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,84 L24,72 L30,72 L30,62 L38,62 L38,72 L44,72 Z" />
+
+    <!-- 音符 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M60,34 L60,64 L68,64 L68,44 L82,40 L82,58 L90,58 L90,26 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M64,60 m-8,0 a8,7 0 1,0 16,0 a8,7 0 1,0 -16,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M86,54 m-8,0 a8,7 0 1,0 16,0 a8,7 0 1,0 -16,0" />
+</vector>
