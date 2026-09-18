@@ -16,8 +16,8 @@ android {
         applicationId 'com.volzz'
         minSdk 28          // Android 9 (Pie)
         targetSdk 36       // Android 16
-        versionCode 3
-        versionName '3'
+        versionCode 4
+        versionName '4'
     }
 
     signingConfigs {

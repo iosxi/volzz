@@ -21,6 +21,10 @@ public final class Prefs {
     public static volatile long lastNoteAt = 0L;
     public static volatile int keyEventCount = 0;
     public static volatile boolean serviceConnected = false;
+    /** 画面が消えている間に受け取った音量キーの回数（メディアセッション経由）。 */
+    public static volatile int screenOffKeyCount = 0;
+    /** 画面が消えている間の受け皿が立っているか。 */
+    public static volatile boolean screenOffArmed = false;
 
     private final SharedPreferences sp;
 

@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
@@ -17,6 +16,10 @@ import android.view.accessibility.AccessibilityEvent;
  * アクセシビリティサービスはシステムが束縛して常駐させるので、常駐のための
  * フォアグラウンドサービスも通知も自動起動の権限も要らない。端末を再起動しても
  * システムが自動で繋ぎ直す。
+ *
+ * ここで扱えるのは画面が点いている間のキーだけ。画面が消えているとキーイベントは
+ * アクセシビリティサービスに届かないので、そのあいだは {@link ScreenOffHook} が
+ * 別の道（メディアセッション）で受け取る。
  */
 public class VolzzService extends AccessibilityService {
 
@@ -25,6 +28,7 @@ public class VolzzService extends AccessibilityService {
 
     private AudioManager audio;
     private Prefs prefs;
+    private ScreenOffHook screenOff;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     /** いま押されている音量キー。0 は「押されていない」。 */
@@ -58,6 +62,11 @@ public class VolzzService extends AccessibilityService {
         info.notificationTimeout = 0;
         setServiceInfo(info);
 
+        if (screenOff == null) {
+            screenOff = new ScreenOffHook(this, audio, prefs);
+            screenOff.start();
+        }
+
         Prefs.serviceConnected = true;
         Prefs.note("サービスに接続しました");
     }
@@ -67,6 +76,7 @@ public class VolzzService extends AccessibilityService {
         Prefs.serviceConnected = false;
         cancelPending();
         reset();
+        stopScreenOffHook();
         Prefs.note("サービスが切断されました");
         return super.onUnbind(intent);
     }
@@ -75,7 +85,15 @@ public class VolzzService extends AccessibilityService {
     public void onDestroy() {
         Prefs.serviceConnected = false;
         cancelPending();
+        stopScreenOffHook();
         super.onDestroy();
+    }
+
+    private void stopScreenOffHook() {
+        if (screenOff != null) {
+            screenOff.stop();
+            screenOff = null;
+        }
     }
 
     @Override
@@ -183,9 +201,9 @@ public class VolzzService extends AccessibilityService {
         longFired = true;
         final int code = heldKey;
 
-        final boolean up = (code == KeyEvent.KEYCODE_VOLUME_UP) != prefs.swap();
-        sendMediaKey(up ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
-        Prefs.note(label(code) + " 長押し → " + (up ? "次の曲へ" : "前の曲へ"));
+        final boolean next = Media.isNext(directionOf(code), prefs.swap());
+        Media.sendKey(audio, next ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+        Prefs.note(label(code) + " 長押し → " + (next ? "次の曲へ" : "前の曲へ"));
 
         if (REPEAT_MS > 0) {
             handler.postDelayed(longPressTask, REPEAT_MS);
@@ -193,34 +211,19 @@ public class VolzzService extends AccessibilityService {
     }
 
     // ------------------------------------------------------------------
-    // 音量とメディアキー
+    // 音量
     // ------------------------------------------------------------------
 
     /** 短押しと確定したときだけ呼ぶ。端末本来の音量操作と同じ見え方にする。 */
     private void adjustVolume(int code) {
-        final int direction = (code == KeyEvent.KEYCODE_VOLUME_UP)
-                ? AudioManager.ADJUST_RAISE
-                : AudioManager.ADJUST_LOWER;
-        try {
-            audio.adjustSuggestedStreamVolume(direction, AudioManager.USE_DEFAULT_STREAM_TYPE,
-                    AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
-        } catch (SecurityException e) {
-            // マナーモードや通知制御の絡みで拒否されることがある。
-            Prefs.note("音量を変更できませんでした: " + e.getMessage());
-        }
+        Media.adjust(audio, directionOf(code),
+                AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
     }
 
-    /** いま再生中のプレイヤー（メディアセッションの持ち主）にメディアキーを送る。 */
-    private void sendMediaKey(int keyCode) {
-        final long now = SystemClock.uptimeMillis();
-        final KeyEvent down = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0);
-        final KeyEvent up = KeyEvent.changeAction(down, KeyEvent.ACTION_UP);
-        try {
-            audio.dispatchMediaKeyEvent(down);
-            audio.dispatchMediaKeyEvent(up);
-        } catch (Exception e) {
-            Prefs.note("曲送りに失敗しました: " + e.getMessage());
-        }
+    private static int directionOf(int code) {
+        return (code == KeyEvent.KEYCODE_VOLUME_UP)
+                ? AudioManager.ADJUST_RAISE
+                : AudioManager.ADJUST_LOWER;
     }
 
     // ------------------------------------------------------------------
