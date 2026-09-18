@@ -319,7 +319,9 @@ final class ScreenOffHook {
 
         // 短押しと確定した。預かっていた分をここで初めて反映する。
         // 画面が消えているので音量パネルも操作音も出さない。
-        Media.adjust(audio, direction, 0);
+        // 動かすのは Media.adjustMusic()。adjustSuggestedStreamVolume() だと
+        // 自分の受け皿に戻ってきてしまう（Media.adjustMusic のコメント）。
+        Media.adjustMusic(audio, direction);
         Prefs.note(label(direction) + " 短押し → 音量を"
                 + (direction == AudioManager.ADJUST_RAISE ? "上げた" : "下げた")
                 + "（画面消灯中）");
