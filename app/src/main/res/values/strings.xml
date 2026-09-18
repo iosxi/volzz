@@ -23,6 +23,7 @@
     <string name="only_while_playing_desc">音が鳴っていないときは音量キーを完全に素通しします。</string>
 
     <string name="vibrate_label">曲送りのときに振動する</string>
+    <string name="vibrate_off_warning">※ 端末側のバイブレーションがオフです（設定 → 音と振動）。このままでは volzz の振動も鳴りません。</string>
     <string name="vibrate_desc">長押しで曲を送ったときに短く振動します。次の曲は 1 回、前の曲は 2 回。画面を見なくても、どちらに動いたか分かります。</string>
 
     <string name="swap_label">上下を入れ替える</string>

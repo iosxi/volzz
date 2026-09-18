@@ -183,6 +183,10 @@ public class MainActivity extends Activity {
         openSettings.setText(granted ? R.string.open_settings_again : R.string.open_settings);
 
         final StringBuilder sb = new StringBuilder();
+        if (prefs.vibrate() && Prefs.systemVibrationOff(this)) {
+            // 端末側で切られていると volzz の振動も鳴らない。原因がここだと分かるように。
+            sb.append(getString(R.string.vibrate_off_warning)).append('\n');
+        }
         sb.append(getString(R.string.diag_count, Prefs.keyEventCount));
         sb.append('\n').append(getString(R.string.diag_count_dark, Prefs.screenOffKeyCount));
         sb.append('\n').append(getString(R.string.diag_count_keep_top, Prefs.keepTopCount));

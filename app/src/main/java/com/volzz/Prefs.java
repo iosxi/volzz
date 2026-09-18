@@ -83,6 +83,23 @@ public final class Prefs {
         return sp.getBoolean(K_VIBRATE, true);
     }
 
+    /**
+     * 端末全体のバイブレーションが切られているか。
+     *
+     * 切られていると、アプリが何を頼んでも `VibratorManagerService` が
+     * `ignored_for_settings` で捨てる（volzz に限らず、着信もアラームも全部）。
+     * 振動が鳴らない原因のほとんどはこれなので、画面に出して気づけるようにする。
+     * 読めなければ「オフではない」と見なす。
+     */
+    public static boolean systemVibrationOff(Context context) {
+        try {
+            return android.provider.Settings.System.getInt(
+                    context.getContentResolver(), "vibrate_on", 1) == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public void setVibrate(boolean value) {
         sp.edit().putBoolean(K_VIBRATE, value).apply();
     }
