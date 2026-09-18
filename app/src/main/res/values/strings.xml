@@ -35,6 +35,7 @@
     <string name="diag_title">動作確認</string>
     <string name="diag_count">受け取った音量キーイベント: %1$d 回</string>
     <string name="diag_count_dark">画面が消えている間に受け取った音量キー: %1$d 回</string>
+    <string name="diag_count_keep_top">受け皿を先頭に押し戻した回数: %1$d 回</string>
     <string name="diag_last">直前の動作: %1$s</string>
     <string name="diag_log_title">最近の動き（新しい順）:</string>
     <string name="diag_desc">この画面を開いたまま音量キーを押すと、volzz がキーを受け取れているか確認できます。数字が増えなければキーが届いていません。\n\n画面が消えている間の分は 2 行目に数えます。画面を消して音量キーを押し、画面を点けてからこの画面を開けば、そのときの動きが「最近の動き」に残っています。同じ行は logcat にも出ます（adb logcat -s volzz）。</string>

@@ -172,6 +172,7 @@ public class MainActivity extends Activity {
         final StringBuilder sb = new StringBuilder();
         sb.append(getString(R.string.diag_count, Prefs.keyEventCount));
         sb.append('\n').append(getString(R.string.diag_count_dark, Prefs.screenOffKeyCount));
+        sb.append('\n').append(getString(R.string.diag_count_keep_top, Prefs.keepTopCount));
 
         final String[] notes = Prefs.recentNotes();
         if (notes.length > 0) {

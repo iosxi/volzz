@@ -29,6 +29,8 @@ public final class Prefs {
     public static volatile int screenOffKeyCount = 0;
     /** 画面が消えている間の受け皿が立っているか。 */
     public static volatile boolean screenOffArmed = false;
+    /** 受け皿を優先順位の先頭に押し戻した回数。 */
+    public static volatile int keepTopCount = 0;
 
     /** 直近の動きを何件残すか。画面が消えている間の分をあとから読むために要る。 */
     private static final int LOG_SIZE = 14;

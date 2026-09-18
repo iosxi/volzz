@@ -51,6 +51,12 @@ final class ScreenOffHook {
     /** 離した合図を取りこぼした押下を、いつ諦めるか。 */
     private static final long STALE_MS = 1500L;
 
+    /** 受け皿を優先順位の先頭に押し戻す間隔。 */
+    private static final long KEEP_TOP_MS = 1500L;
+
+    /** 曲送りの直後、プレイヤーが状態を報告し終えた頃を狙って押し戻す時刻。 */
+    private static final long[] AFTER_SKIP_MS = {200L, 600L, 1200L};
+
     private final Context context;
     private final AudioManager audio;
     private final Prefs prefs;
@@ -68,6 +74,29 @@ final class ScreenOffHook {
         @Override
         public void run() {
             onLongPress();
+        }
+    };
+
+    /** 単発の押し戻し（曲送りの直後に何度か撃つ）。 */
+    private final Runnable pushTask = new Runnable() {
+        @Override
+        public void run() {
+            pushToTop();
+        }
+    };
+
+    /** 定期の押し戻し。曲が自然に変わったときも先頭を保つ。 */
+    private final Runnable keepTopTask = new Runnable() {
+        @Override
+        public void run() {
+            if (session == null) {
+                return;
+            }
+            // 何も鳴っていなければ競争相手も居ないので、押し戻す必要はない。
+            if (audio.isMusicActive()) {
+                pushToTop();
+            }
+            handler.postDelayed(this, KEEP_TOP_MS);
         }
     };
 
@@ -135,15 +164,11 @@ final class ScreenOffHook {
             }, handler);
             s.setPlaybackToRemote(newVolumeProvider());
             s.setActive(true);
+            session = s;
             // 「再生中」と申告したセッションが音量キーの宛先になる
             // （getDefaultVolumeSession は再生中のセッションだけを見る）。
-            s.setPlaybackState(new PlaybackState.Builder()
-                    .setState(PlaybackState.STATE_PLAYING,
-                            PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1.0f)
-                    .setActions(PlaybackState.ACTION_SKIP_TO_NEXT
-                            | PlaybackState.ACTION_SKIP_TO_PREVIOUS)
-                    .build());
-            session = s;
+            pushToTop();
+            handler.postDelayed(keepTopTask, KEEP_TOP_MS);
             Prefs.screenOffArmed = true;
             Prefs.note("画面が消えた → 音量キーの受け皿を立てた（再生中: "
                     + (audio.isMusicActive() ? "はい" : "いいえ") + "）");
@@ -153,8 +178,51 @@ final class ScreenOffHook {
         }
     }
 
+    /**
+     * 受け皿を優先順位の先頭に押し戻す。
+     *
+     * 音量キーの宛先は「再生中のセッションのうち、いちばん最近先頭に来たもの」。
+     * 曲送りを受けたプレイヤーが `STATE_SKIPPING_TO_NEXT` などを報告すると、
+     * それは「常に優先」の状態（`MediaSessionRecord.ALWAYS_PRIORITY_STATES`）
+     * なので無条件で先頭に来て、volzz の受け皿は押し下げられる。そのままだと
+     * 1 回曲を送ったあと、次の長押しから音量が動いてしまう（v5 の不具合）。
+     *
+     * `STATE_SKIPPING_TO_NEXT` はこちらから申告しても同じ効果があるので、
+     * それで押し戻してから `STATE_PLAYING` に戻す。どちらも「再生中」の扱い
+     * なので、押し戻しの途中で受け皿が外れることはない。
+     */
+    private void pushToTop() {
+        if (session == null) {
+            return;
+        }
+        try {
+            session.setPlaybackState(playbackState(PlaybackState.STATE_SKIPPING_TO_NEXT));
+            session.setPlaybackState(playbackState(PlaybackState.STATE_PLAYING));
+            Prefs.keepTopCount++;
+        } catch (Exception e) {
+            Prefs.note("先頭に押し戻せませんでした: " + e.getMessage());
+        }
+    }
+
+    /** 曲送りの直後は、プレイヤーが状態を報告し終えた頃を狙って何度か押し戻す。 */
+    private void pushToTopAfterSkip() {
+        for (long delay : AFTER_SKIP_MS) {
+            handler.postDelayed(pushTask, delay);
+        }
+    }
+
+    private static PlaybackState playbackState(int state) {
+        return new PlaybackState.Builder()
+                .setState(state, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1.0f)
+                .setActions(PlaybackState.ACTION_SKIP_TO_NEXT
+                        | PlaybackState.ACTION_SKIP_TO_PREVIOUS)
+                .build();
+    }
+
     private void disarm() {
         cancelPending();
+        handler.removeCallbacks(keepTopTask);
+        handler.removeCallbacks(pushTask);
         reset();
         Prefs.screenOffArmed = false;
         if (session == null) {
@@ -270,6 +338,8 @@ final class ScreenOffHook {
         Media.sendKey(audio, next ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
         Prefs.note(label(direction) + " 長押し → " + (next ? "次の曲へ" : "前の曲へ")
                 + "（画面消灯中）");
+        // 曲送りを受けたプレイヤーが先頭に来るので、続けて長押しできるように押し戻す。
+        pushToTopAfterSkip();
     }
 
     // ------------------------------------------------------------------
