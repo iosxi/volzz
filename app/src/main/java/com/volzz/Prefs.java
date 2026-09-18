@@ -2,9 +2,13 @@ package com.volzz;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 
 /** 設定の保存と、動作確認用の診断情報。 */
 public final class Prefs {
+
+    /** logcat のタグ。`adb logcat -s volzz` で動きを追える。 */
+    public static final String TAG = "volzz";
 
     private static final String FILE = "volzz";
     private static final String K_ENABLED = "enabled";
@@ -25,6 +29,11 @@ public final class Prefs {
     public static volatile int screenOffKeyCount = 0;
     /** 画面が消えている間の受け皿が立っているか。 */
     public static volatile boolean screenOffArmed = false;
+
+    /** 直近の動きを何件残すか。画面が消えている間の分をあとから読むために要る。 */
+    private static final int LOG_SIZE = 14;
+    private static final String[] recent = new String[LOG_SIZE];
+    private static int recentAt = 0;
 
     private final SharedPreferences sp;
 
@@ -67,9 +76,26 @@ public final class Prefs {
         sp.edit().putBoolean(K_SWAP, value).apply();
     }
 
-    /** 画面に出す「いま何が起きたか」。ファイルには書かないので押下のたびに呼んでよい。 */
-    public static void note(String message) {
+    /**
+     * 画面に出す「いま何が起きたか」。ファイルには書かないので押下のたびに呼んでよい。
+     *
+     * 画面が消えている間の動きは、その場では誰も見られない。あとから読めるように
+     * 直近ぶんを残し、logcat にも同じ行を出す（`adb logcat -s volzz`）。
+     */
+    public static synchronized void note(String message) {
         lastNote = message;
         lastNoteAt = System.currentTimeMillis();
+        Log.i(TAG, message);
+        recent[recentAt % LOG_SIZE] = String.format("%tT", lastNoteAt) + "  " + message;
+        recentAt++;
+    }
+
+    /** 直近の動き。新しいものから順に。 */
+    public static synchronized String[] recentNotes() {
+        final String[] out = new String[Math.min(recentAt, LOG_SIZE)];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = recent[(recentAt - 1 - i + LOG_SIZE) % LOG_SIZE];
+        }
+        return out;
     }
 }

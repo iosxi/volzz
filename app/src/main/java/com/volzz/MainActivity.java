@@ -172,7 +172,14 @@ public class MainActivity extends Activity {
         final StringBuilder sb = new StringBuilder();
         sb.append(getString(R.string.diag_count, Prefs.keyEventCount));
         sb.append('\n').append(getString(R.string.diag_count_dark, Prefs.screenOffKeyCount));
-        if (!TextUtils.isEmpty(Prefs.lastNote)) {
+
+        final String[] notes = Prefs.recentNotes();
+        if (notes.length > 0) {
+            sb.append('\n').append(getString(R.string.diag_log_title));
+            for (String note : notes) {
+                sb.append('\n').append(note);
+            }
+        } else if (!TextUtils.isEmpty(Prefs.lastNote)) {
             sb.append('\n').append(getString(R.string.diag_last, Prefs.lastNote));
         }
         diag.setText(sb.toString());

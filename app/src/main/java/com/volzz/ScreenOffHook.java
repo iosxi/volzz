@@ -123,6 +123,16 @@ final class ScreenOffHook {
         }
         try {
             final MediaSession s = new MediaSession(context, "volzz");
+            // setCallback() は必須。MediaSession#postToCallbackDelayed() は
+            // mCallback が null だとメッセージを捨てるので、コールバックを
+            // 付けずに VolumeProvider だけ渡すと、システムは音量キーをこの
+            // セッションに配るのに onAdjustVolume() が一度も呼ばれない。
+            // キーだけ握り潰して何も起きない状態になる（v4 の不具合）。
+            // mCallback は setCallback() でしか作られない。
+            s.setCallback(new MediaSession.Callback() {
+                // 中身は空でよい。メディアボタンの宛先は「直前に音を出した uid」で
+                // 決まるので、音を鳴らさない volzz にはそもそも回ってこない。
+            }, handler);
             s.setPlaybackToRemote(newVolumeProvider());
             s.setActive(true);
             // 「再生中」と申告したセッションが音量キーの宛先になる
@@ -135,7 +145,8 @@ final class ScreenOffHook {
                     .build());
             session = s;
             Prefs.screenOffArmed = true;
-            Prefs.note("画面が消えた → 音量キーの受け皿を立てた");
+            Prefs.note("画面が消えた → 音量キーの受け皿を立てた（再生中: "
+                    + (audio.isMusicActive() ? "はい" : "いいえ") + "）");
         } catch (Exception e) {
             Prefs.screenOffArmed = false;
             Prefs.note("受け皿を立てられませんでした: " + e.getMessage());
@@ -166,13 +177,9 @@ final class ScreenOffHook {
         return new VolumeProvider(VolumeProvider.VOLUME_CONTROL_RELATIVE, FAKE_MAX, FAKE_CURRENT) {
             @Override
             public void onAdjustVolume(final int direction) {
-                // バインダースレッドから来るので、判定は必ずメインに寄せる。
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        onVolumeKey(direction);
-                    }
-                });
+                // setCallback() に main の Handler を渡しているので、ここは
+                // すでにメインスレッド。
+                onVolumeKey(direction);
             }
         };
     }
