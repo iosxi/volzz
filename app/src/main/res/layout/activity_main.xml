@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true">
@@ -113,6 +114,11 @@
         <TextView
             style="@style/SectionTitle"
             android:text="@string/mode_title" />
+
+        <TextView
+            style="@style/Hint"
+            android:layout_marginBottom="6dp"
+            android:text="@string/mode_desc" />
 
         <RadioButton
             android:id="@+id/mode_a"

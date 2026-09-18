@@ -6,8 +6,8 @@ import android.content.SharedPreferences;
 /** 設定の保存と、動作確認用の診断情報。 */
 public final class Prefs {
 
-    /** モードA: 短押しは素通し。長押しで曲送りし、鳴ってしまった 1 段分を戻す。 */
-    public static final int MODE_PASSTHROUGH = 0;
+    /** モードA: 押した瞬間に音量を動かす。長押しになったらその 1 段を戻して曲を送る。 */
+    public static final int MODE_IMMEDIATE = 0;
     /** モードB: 押した瞬間は横取りし、短押しと分かった時点で音量を動かす。 */
     public static final int MODE_DEFER = 1;
 
@@ -43,7 +43,7 @@ public final class Prefs {
     }
 
     public int mode() {
-        return sp.getInt(K_MODE, MODE_PASSTHROUGH);
+        return sp.getInt(K_MODE, MODE_IMMEDIATE);
     }
 
     public void setMode(int value) {

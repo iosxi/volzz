@@ -9,6 +9,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.RadioButton;
@@ -48,6 +49,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         prefs = new Prefs(this);
+
+        applySystemBarInsets();
 
         status = findViewById(R.id.status);
         diag = findViewById(R.id.diag);
@@ -115,7 +118,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        modeA.setChecked(prefs.mode() == Prefs.MODE_PASSTHROUGH);
+        modeA.setChecked(prefs.mode() == Prefs.MODE_IMMEDIATE);
         modeB.setChecked(prefs.mode() == Prefs.MODE_DEFER);
         CompoundButton.OnCheckedChangeListener modeListener =
                 new CompoundButton.OnCheckedChangeListener() {
@@ -125,7 +128,7 @@ public class MainActivity extends Activity {
                             return;
                         }
                         boolean isA = button == modeA;
-                        prefs.setMode(isA ? Prefs.MODE_PASSTHROUGH : Prefs.MODE_DEFER);
+                        prefs.setMode(isA ? Prefs.MODE_IMMEDIATE : Prefs.MODE_DEFER);
                         modeA.setChecked(isA);
                         modeB.setChecked(!isA);
                     }
@@ -144,6 +147,31 @@ public class MainActivity extends Activity {
     protected void onPause() {
         handler.removeCallbacks(poll);
         super.onPause();
+    }
+
+    /**
+     * ステータスバーとナビゲーションバーの分だけ余白を空ける。
+     *
+     * targetSdk 35 以降のアプリは端から端まで描画する（edge-to-edge）のが既定に
+     * なったため、何もしないと画面の上下がバーの裏に潜って読めなくなる。
+     * getSystemWindowInset* は非推奨だが API 28 から 36 まで一本のコードで済み、
+     * systemBars と同じ値を返す。
+     */
+    @SuppressWarnings("deprecation")
+    private void applySystemBarInsets() {
+        final View root = findViewById(R.id.root);
+        root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+            @Override
+            public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
+                v.setPadding(
+                        insets.getSystemWindowInsetLeft(),
+                        insets.getSystemWindowInsetTop(),
+                        insets.getSystemWindowInsetRight(),
+                        insets.getSystemWindowInsetBottom());
+                return insets;
+            }
+        });
+        root.requestApplyInsets();
     }
 
     private void showThreshold(int ms) {

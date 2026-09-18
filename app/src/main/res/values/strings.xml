@@ -30,8 +30,9 @@
     <string name="threshold_desc">短くすると曲送りが速くなりますが、少し長めの音量操作が誤って曲送りになりやすくなります。</string>
 
     <string name="mode_title">短押しの扱い</string>
+    <string name="mode_desc">どちらを選んでも、曲送りしたあとはキーを離すまで音量は動きません。</string>
     <string name="mode_a">遅延なし（おすすめ）</string>
-    <string name="mode_a_desc">短押しは端末本来の処理にそのまま任せます。反応の遅れはありません。長押しのときだけ、動いてしまった音量 1 段を即座に元へ戻します。</string>
+    <string name="mode_a_desc">押した瞬間に音量が動きます。反応の遅れはありません。長押しになった時点で、その 1 段を押す前の値に戻してから曲を送ります。</string>
     <string name="mode_b">音量を動かさない</string>
     <string name="mode_b_desc">キーをいったん預かり、短押しと分かってから音量を動かします。曲送りのときに音量が一瞬も動きませんが、音量操作が判定時間のぶん遅れます。</string>
 

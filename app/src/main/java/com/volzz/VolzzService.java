@@ -33,8 +33,8 @@ public class VolzzService extends AccessibilityService {
     private boolean armed = false;
     /** この押下で長押しが成立したか。 */
     private boolean longFired = false;
-    /** モード A で最初の DOWN をシステムに通したか。 */
-    private boolean passedThrough = false;
+    /** この押下がモード A（押した瞬間に音量を動かす）か。 */
+    private boolean immediate = false;
     /** モード A で戻すための、押す直前の音量。-1 は「分からない」。 */
     private int snapshotStream = -1;
     private int snapshotVolume = -1;
@@ -115,8 +115,8 @@ public class VolzzService extends AccessibilityService {
                 if (event.getRepeatCount() == 0) {
                     return handleDown(code);
                 }
-                // 押しっぱなしで届く自動リピート。見張っている間は握り潰す
-                // （通さないと音量が際限なく動いてしまう）。
+                // 念のため。DOWN を握り潰しているのでリピートは来ないはずだが、
+                // 届いた場合も見張っている間は握り潰す。
                 return armed && heldKey == code;
 
             case KeyEvent.ACTION_UP:
@@ -141,22 +141,26 @@ public class VolzzService extends AccessibilityService {
         armed = true;
         heldKey = code;
         longFired = false;
-        passedThrough = (prefs.mode() == Prefs.MODE_PASSTHROUGH);
+        immediate = (prefs.mode() == Prefs.MODE_IMMEDIATE);
+        snapshotStream = -1;
+        snapshotVolume = -1;
 
-        if (passedThrough && musicActive) {
-            // モード A では 1 段だけ音量が動く。戻せるように控えておく。
-            snapshotStream = AudioManager.STREAM_MUSIC;
-            snapshotVolume = safeGetVolume(AudioManager.STREAM_MUSIC);
-        } else {
-            snapshotStream = -1;
-            snapshotVolume = -1;
+        if (immediate) {
+            // 遅延なしで音量を動かす。長押しになったら戻せるよう控えてから動かす。
+            if (musicActive) {
+                snapshotStream = AudioManager.STREAM_MUSIC;
+                snapshotVolume = safeGetVolume(AudioManager.STREAM_MUSIC);
+            }
+            adjustVolume(code, true);
         }
 
         handler.postDelayed(longPressTask, prefs.thresholdMs());
 
-        // モード A は最初の DOWN を通す（短押しの手触りが元のまま）。
-        // モード B は握り潰す（曲送りのときに音量が一瞬も動かない）。
-        return !passedThrough;
+        // DOWN は必ず握り潰す。ここで通してしまうと、以降の自動リピートは
+        // システム側（InputDispatcher）が作るようになり、アクセシビリティの
+        // フィルタを通らなくなる。そうなると曲送りのあとも音量が上がり続け、
+        // volzz には止める手段がなくなる。
+        return true;
     }
 
     private boolean handleUp(int code) {
@@ -167,22 +171,25 @@ public class VolzzService extends AccessibilityService {
         cancelPending();
 
         final boolean wasLongPress = longFired;
-        final boolean wasPassedThrough = passedThrough;
+        final boolean wasImmediate = immediate;
         reset();
 
-        if (!wasLongPress && !wasPassedThrough) {
-            // モード B の短押し。DOWN を預かったままなので、ここで音量を動かす。
+        if (wasLongPress) {
+            // 曲送りは済んでいる。離すまでに音量を動かしてはいけない。
+            Prefs.note(label(code) + " 長押しから離した（音量は動かさない）");
+        } else if (wasImmediate) {
+            // DOWN の時点で動かしてある。ここでは何もしない。
+            Prefs.note(label(code) + " 短押し → 音量を"
+                    + (code == KeyEvent.KEYCODE_VOLUME_UP ? "上げた" : "下げた"));
+        } else {
+            // モード B の短押し。預かったままなので、ここで初めて動かす。
             adjustVolume(code, true);
             Prefs.note(label(code) + " 短押し → 音量を"
                     + (code == KeyEvent.KEYCODE_VOLUME_UP ? "上げた" : "下げた"));
-        } else if (!wasLongPress) {
-            Prefs.note(label(code) + " 短押し → 通常の音量操作（素通し）");
         }
 
-        // UP を握り潰すのは DOWN を握り潰したときだけにする。
-        // 素通しした DOWN に対して UP を止めると、システムからはキーが
-        // 押されたままに見えてしまう。
-        return !wasPassedThrough;
+        // DOWN を握り潰しているので UP も握り潰す（キーの対を崩さない）。
+        return true;
     }
 
     private void onLongPress() {
@@ -192,8 +199,8 @@ public class VolzzService extends AccessibilityService {
         longFired = true;
         final int code = heldKey;
 
-        if (passedThrough) {
-            restoreVolume(code);          // 動いてしまった 1 段を戻す
+        if (immediate) {
+            restoreVolume(code);          // 押した瞬間に動かした 1 段を戻す
         }
 
         final boolean up = (code == KeyEvent.KEYCODE_VOLUME_UP) != prefs.swap();
@@ -273,7 +280,7 @@ public class VolzzService extends AccessibilityService {
         armed = false;
         heldKey = 0;
         longFired = false;
-        passedThrough = false;
+        immediate = false;
         snapshotStream = -1;
         snapshotVolume = -1;
     }
