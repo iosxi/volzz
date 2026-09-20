@@ -26,18 +26,33 @@ final class VolumeCurve {
     final int deviceType;
     /** getStreamVolumeDb が使えず、仮のカーブで代用しているか。 */
     final boolean synthetic;
+    /** 細かい段階を並べる下限（負の値）。ハードの最下段より下のこともある。 */
+    private final float floorDb;
 
     private VolumeCurve(float[] relDb, int maxIndex, int minAudibleIndex,
-                        int deviceType, boolean synthetic) {
+                        int deviceType, boolean synthetic, float floorDb) {
         this.relDb = relDb;
         this.maxIndex = maxIndex;
         this.minAudibleIndex = minAudibleIndex;
         this.deviceType = deviceType;
         this.synthetic = synthetic;
+        this.floorDb = floorDb;
     }
 
-    /** 下限の段が最大段より何 dB 下か（負の値）。細かい段階はこの幅の中に並べる。 */
+    /**
+     * 細かい段階を並べる下限が、最大段より何 dB 下か（負の値）。
+     *
+     * ふつうはハードの最下段そのもの。ただし最下段がどれだけ下かは OEM 次第で、
+     * 実測では Xperia 1 VII が -66.8 dB、AQUOS R8 は -51 dB しかない。同じ「1 段目」でも
+     * AQUOS のほうがはっきり大きい音になってしまう。そこで負ゲインを掛けられる端末では、
+     * 最下段よりさらに下まで下限を伸ばす（{@link #read} の deepestFloorDb）。
+     */
     float floorDb() {
+        return floorDb;
+    }
+
+    /** ハードの最下段が最大段より何 dB 下か。負ゲインで伸ばす前の、素の下限。 */
+    float hardwareFloorDb() {
         return relDb[minAudibleIndex];
     }
 
@@ -47,7 +62,12 @@ final class VolumeCurve {
         return relDb[index] - relDb[index - 1];
     }
 
-    static VolumeCurve read(AudioManager am, int deviceType) {
+    /**
+     * @param deepestFloorDb 負ゲインで伸ばしてよい下限（0 以下）。ハードの最下段が
+     *                       これより上なら、その差はエフェクトの負ゲインが埋める。
+     *                       伸ばす手段が無いときは 0 を渡す（＝ハードの最下段が下限）。
+     */
+    static VolumeCurve read(AudioManager am, int deviceType, float deepestFloorDb) {
         int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         if (max < 1) max = 1;
         float[] rel = new float[max + 1];
@@ -111,7 +131,11 @@ final class VolumeCurve {
         rel[max] = 0f;
         if (rel[minAudible] >= 0f) rel[minAudible] = -60f;   // 全段が同値という異常への保険
 
-        return new VolumeCurve(rel, max, minAudible, deviceType, synthetic);
+        // ハードの最下段が浅い端末では、そこからさらに下を負ゲインで作る。
+        float floor = rel[minAudible];
+        if (deepestFloorDb < floor) floor = deepestFloorDb;
+
+        return new VolumeCurve(rel, max, minAudible, deviceType, synthetic, floor);
     }
 
     /** いま音が出ている先を推定する。出力先が変わると dB カーブも変わるので要る。 */

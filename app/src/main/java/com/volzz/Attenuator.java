@@ -25,6 +25,15 @@ abstract class Attenuator {
     /** 設定画面に出す名前。 */
     abstract String label();
 
+    /**
+     * いま実際に入っているゲインを読み戻す。
+     *
+     * 頼んだ値がそのまま通っているかを確かめるために要る。大きな負ゲインを
+     * 内側で頭打ちにする端末があり得るので、頼んだ値だけを見ていては分からない。
+     * 読めなければ NaN。
+     */
+    abstract float readBackDb();
+
     /** 効き方が OEM 依存で当てにならない手段か。 */
     boolean bestEffort() {
         return false;
@@ -101,6 +110,17 @@ abstract class Attenuator {
         }
 
         @Override
+        float readBackDb() {
+            DynamicsProcessing d = dp;
+            if (d == null) return Float.NaN;
+            try {
+                return d.getInputGainByChannelIndex(0);
+            } catch (RuntimeException e) {
+                return Float.NaN;
+            }
+        }
+
+        @Override
         String label() {
             return "DynamicsProcessing";
         }
@@ -151,6 +171,17 @@ abstract class Attenuator {
                 // 同上
             }
             l.release();
+        }
+
+        @Override
+        float readBackDb() {
+            LoudnessEnhancer l = le;
+            if (l == null) return Float.NaN;
+            try {
+                return l.getTargetGain() / 100f;
+            } catch (RuntimeException e) {
+                return Float.NaN;
+            }
         }
 
         @Override

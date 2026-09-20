@@ -209,7 +209,9 @@ public class MainActivity extends Activity {
             return fv.curve();
         }
         final AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        return VolumeCurve.read(am, VolumeCurve.currentOutputDeviceType(am));
+        // サービスがまだ繋がっていないときの代用。負ゲインが使える前提の下限で出す。
+        return VolumeCurve.read(am, VolumeCurve.currentOutputDeviceType(am),
+                FineScale.FLOOR_DB);
     }
 
     /**

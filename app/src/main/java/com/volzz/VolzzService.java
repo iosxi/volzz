@@ -30,6 +30,9 @@ public class VolzzService extends AccessibilityService {
     /** 長押し成立後、押しっぱなしで曲送りを繰り返す間隔。0 なら繰り返さない。 */
     private static final long REPEAT_MS = 0L;
 
+    /** 曲送りをしない押下（何も鳴っていないとき）で、押しっぱなし中に音量を刻む間隔。 */
+    private static final long VOLUME_REPEAT_MS = 110L;
+
     /** 設定画面から状態を覗くための参照。サービスと画面は同一プロセス。 */
     static volatile VolzzService instance;
 
@@ -46,6 +49,8 @@ public class VolzzService extends AccessibilityService {
     private boolean armed = false;
     /** この押下で長押しが成立したか。 */
     private boolean longFired = false;
+    /** この押下では曲送りをせず、音量だけを動かすか。DOWN で決め、UP まで変えない。 */
+    private boolean volumeOnly = false;
 
     private final Runnable longPressTask = new Runnable() {
         @Override
@@ -183,10 +188,22 @@ public class VolzzService extends AccessibilityService {
     private boolean handleDown(int code) {
         cancelPending();
 
-        if (prefs.onlyWhilePlaying() && !audio.isMusicActive()) {
-            // 何も鳴っていないときは完全な素通し。通常の音量操作に影響を残さない。
+        // 「再生中だけ介入する」が意味するのは曲送りのほうだけにする。何も鳴っていない
+        // ときでも音量は細かく刻みたい（ここを素通しにすると、再生していない間だけ
+        // ハード 1 段ずつに戻ってしまい、100 段にした意味がなくなる）。
+        volumeOnly = prefs.onlyWhilePlaying() && !audio.isMusicActive();
+
+        if (!mediaIsTarget()) {
+            // 通話中や着信中。音量キーはメディア以外に向かうべきなので手を出さない。
             reset();
-            Prefs.note("素通し（再生中ではない）");
+            Prefs.note("素通し（いま音量キーはメディアに向かわない）");
+            return false;
+        }
+        if (volumeOnly && (fine == null || !fine.canHandle())) {
+            // 細かく刻めないなら横取りする値打ちがない。素通しにしておけば
+            // 端末本来の音量操作（自動リピートも音量パネルも）がそのまま働く。
+            reset();
+            Prefs.note("素通し（再生中ではない・細かい音量は使えない）");
             return false;
         }
 
@@ -218,9 +235,15 @@ public class VolzzService extends AccessibilityService {
         cancelPending();
 
         final boolean wasLongPress = longFired;
+        final boolean wasVolumeOnly = volumeOnly;
         reset();
 
-        if (wasLongPress) {
+        if (wasLongPress && wasVolumeOnly) {
+            // 押しっぱなしの間ずっと音量を刻んでいた。刻むたびに記録すると
+            // 直近の記録が埋まってしまうので、離したときに 1 行だけ残す。
+            Prefs.note(label(code) + " 押しっぱなし → 音量を動かした"
+                    + (fine == null ? "" : "（" + fine.level() + "/" + fine.steps() + " 段）"));
+        } else if (wasLongPress) {
             // 曲送りは済んでいる。音量には触らない。
             Prefs.note(label(code) + " 長押しから離した（音量は動かさない）");
         } else {
@@ -238,6 +261,14 @@ public class VolzzService extends AccessibilityService {
         }
         longFired = true;
         final int code = heldKey;
+
+        if (volumeOnly) {
+            // 何も鳴っていないので曲送りはしない。素通しをやめた代わりに、
+            // 端末本来の「押しっぱなしで動き続ける」を自前で出す。
+            adjustVolume(code);
+            handler.postDelayed(longPressTask, VOLUME_REPEAT_MS);
+            return;
+        }
 
         final boolean next = Media.isNext(directionOf(code), prefs.swap());
         Media.sendKey(audio, next ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
@@ -269,11 +300,10 @@ public class VolzzService extends AccessibilityService {
     private String adjustVolume(int code) {
         final int direction = directionOf(code);
 
-        // adjustSuggestedStreamVolume が狙うのはメディアだけとは限らない。
-        // 何も鳴っていないときは着信音量に向かうので、そこは触らずに従来どおりにする。
-        final boolean mediaIsTarget = audio.isMusicActive();
-
-        if (mediaIsTarget && fine != null && fine.canHandle()) {
+        // 細かい音量は setStreamVolume(STREAM_MUSIC) で必ずメディアに向かうので、
+        // 何か鳴っているかどうかを問わない。鳴っていないときだけハード 1 段に戻すと、
+        // 「再生していないと 100 段にならない」ことになってしまう。
+        if (fine != null && fine.canHandle()) {
             int moved = fine.stepByKey(direction);
             if (hud != null) {
                 hud.show(fine.level(), fine.steps(), fine.currentDb());
@@ -287,6 +317,16 @@ public class VolzzService extends AccessibilityService {
                 AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
         return "音量を" + (direction == AudioManager.ADJUST_RAISE ? "上げた" : "下げた")
                 + "（ハード 1 段）";
+    }
+
+    /**
+     * いま音量キーがメディアに向かうべきか。
+     *
+     * 通話中・着信中はメディア以外（通話音量、着信音量）に向かう。そこを横取りすると
+     * 通話の音量が変えられなくなるので、音の鳴り方が普通でない間は手を出さない。
+     */
+    private boolean mediaIsTarget() {
+        return audio.getMode() == AudioManager.MODE_NORMAL;
     }
 
     private static int directionOf(int code) {
@@ -305,6 +345,7 @@ public class VolzzService extends AccessibilityService {
         armed = false;
         heldKey = 0;
         longFired = false;
+        volumeOnly = false;
     }
 
     private static String label(int code) {

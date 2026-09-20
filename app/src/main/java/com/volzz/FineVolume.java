@@ -22,6 +22,10 @@ import android.os.SystemClock;
  * 「狙い以上の段を選ぶ」ことに意味がある。埋める量がその段のすぐ下との間隔以内に
  * 必ず収まるので、エフェクトが効かなくなっても音はハード 1 段分しか跳ねない。
  * 物理キーを 1 回押したときと同じ跳ね幅で、事故にならない。
+ *
+ * 下限（いちばん小さい音）はハードの最下段とは限らない。最下段が浅い端末では
+ * {@link FineScale#FLOOR_DB} まで負ゲインで伸ばす。頼んだ負ゲインが本当に
+ * 入っているかは {@link #verifyGain} で読み戻して確かめる。
  */
 final class FineVolume {
 
@@ -41,6 +45,10 @@ final class FineVolume {
     private int hwSetByUs = -1;
     /** いま実際に入っている負ゲイン。 */
     private float gainNow = 0f;
+    /** 最後に読み戻した負ゲイン。読めなければ NaN。 */
+    private float gainReadBack = Float.NaN;
+    /** 同じ頭打ちを何度も言わないための覚え。 */
+    private float complainedFor = Float.NaN;
 
     /** 連打の加速。volzz では長押しが曲送りなので、連打で稼ぐしかない。 */
     private long lastKeyAt = 0L;
@@ -57,6 +65,7 @@ final class FineVolume {
     void start() {
         steps = prefs.fineSteps();
         att = Attenuator.acquire();
+        probeDepth();
         refreshCurve();
         level = FineScale.levelForHwIndex(curve, steps, hwIndex());
         int saved = prefs.fineLevel();
@@ -192,7 +201,60 @@ final class FineVolume {
     }
 
     private void refreshCurve() {
-        curve = VolumeCurve.read(am, VolumeCurve.currentOutputDeviceType(am));
+        // 負ゲインを掛けられる端末では、ハードの最下段より下まで下限を伸ばす。
+        // 掛けられないなら伸ばしようがないので、ハードの最下段を下限にする。
+        curve = VolumeCurve.read(am, VolumeCurve.currentOutputDeviceType(am),
+                att != null ? FineScale.FLOOR_DB : 0f);
+    }
+
+    /**
+     * 掴んだ直後に一度だけ、深い負ゲインが本当に通るかを測る。
+     *
+     * ハードの最下段が浅い端末では、いちばん小さい音を作るのに 10 dB を超える減衰を
+     * エフェクトに頼むことになる。端末が内側で頭打ちにしていないかを、使う前に
+     * 記録に残しておく（設定画面の「直近の動き」と logcat に出る）。
+     *
+     * 分かるのは「値が通るか」まで。値が通っても音が変わらない端末はあり得るので
+     * （Xperia 1 VII の LoudnessEnhancer がそうだった）、そこは耳で確かめるしかない。
+     *
+     * 何か鳴っている最中には測らない。一瞬とはいえ音が落ちるため。
+     */
+    private void probeDepth() {
+        if (att == null || am.isMusicActive()) return;
+        att.setDb(FineScale.FLOOR_DB);
+        float back = att.readBackDb();
+        att.setDb(0f);
+        gainNow = 0f;
+        if (Float.isNaN(back)) {
+            Prefs.note("負ゲインの深さ: 読み戻せない端末です");
+        } else {
+            Prefs.note(String.format("負ゲインの深さ: 頼み %.0f dB → 実際 %.1f dB",
+                    FineScale.FLOOR_DB, back));
+        }
+    }
+
+    /**
+     * 頼んだ負ゲインがそのまま入ったか確かめる。
+     *
+     * ハードの最下段より下を作るときは、エフェクトに 10 dB を超える減衰を頼むことになる。
+     * 端末が内側で頭打ちにしていると「下げたのに小さくならない」という症状になるが、
+     * 頼んだ値だけを見ていては気づけない。読み戻して食い違いを残しておく。
+     */
+    private void verifyGain(float wanted) {
+        if (att == null) {
+            gainReadBack = Float.NaN;
+            return;
+        }
+        gainReadBack = att.readBackDb();
+        if (Float.isNaN(gainReadBack)) return;
+        if (Math.abs(gainReadBack - wanted) <= 0.5f) {
+            complainedFor = Float.NaN;
+            return;
+        }
+        if (wanted == complainedFor) return;      // 同じ値で何度も言わない
+        complainedFor = wanted;
+        Prefs.note(String.format("負ゲインが頭打ちです: 頼み %.1f dB → 実際 %.1f dB",
+                wanted, gainReadBack));
     }
 
     /**
@@ -224,10 +286,14 @@ final class FineVolume {
             gainNow = t.gainDb;
         }
 
+        verifyGain(t.gainDb);
+
         prefs.setFineLevel(level);
         prefs.setFineLastHwIndex(t.hwIndex);
-        Prefs.fineLastDetail = String.format("%d/%d 段 hw=%d gain=%.2fdB 合計=%.2fdB",
-                level, steps, t.hwIndex, t.gainDb, t.totalDb);
+        Prefs.fineLastDetail = String.format("%d/%d 段 hw=%d gain=%.2fdB%s 合計=%.2fdB",
+                level, steps, t.hwIndex, t.gainDb,
+                Float.isNaN(gainReadBack) ? "" : String.format("(実 %.2f)", gainReadBack),
+                t.totalDb);
     }
 
     private int hwIndex() {
