@@ -431,6 +431,25 @@ info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
   **この鍵は捨てないこと。** 失うと同じアプリとして更新できなくなり、
   入れ直しが必要になる
 
+## リリース
+
+`app/build.gradle` の `versionCode` / `versionName` を上げてビルドし、`volzz.apk` を
+差し替えてから、commit → push → タグ（`v0`, `v1`, … と整数を 1 つずつ）を push する。
+そのあと:
+
+```sh
+bash tools/release.sh v11 "v11: 見出し" notes.md
+```
+
+GitHub Release を作り、`volzz.apk` を添えるところまでやる。この PC には `gh` が
+入っていないので、GitHub API を直接叩いている。**認証は Git が使っているのと同じ
+資格情報（Git Credential Manager）を借りる**ので、トークンを別に用意しなくてよい。
+取り出したトークンは `curl` の設定ファイルに直接書くだけで、変数にも画面にも出さず、
+終了時にそのファイルごと消す。
+
+タグが GitHub 側に無ければ止まる。タグを push し忘れたまま Release を作ると、
+その場でタグが生えて（コミットとずれて）後始末が面倒になるため。
+
 ## 構成
 
 ```
