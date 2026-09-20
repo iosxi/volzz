@@ -20,15 +20,24 @@ import android.view.accessibility.AccessibilityEvent;
  * ここで扱えるのは画面が点いている間のキーだけ。画面が消えているとキーイベントは
  * アクセシビリティサービスに届かないので、そのあいだは {@link ScreenOffHook} が
  * 別の道（メディアセッション）で受け取る。
+ *
+ * 短押しで動かす量は {@link FineVolume} が決める。端末のハード段階より細かく刻める
+ * 端末では 1 押し 1 細段になり、そうでない端末では今までどおり 1 押し 1 ハード段になる。
+ * 長押しの曲送りはどちらでも変わらない。
  */
 public class VolzzService extends AccessibilityService {
 
     /** 長押し成立後、押しっぱなしで曲送りを繰り返す間隔。0 なら繰り返さない。 */
     private static final long REPEAT_MS = 0L;
 
+    /** 設定画面から状態を覗くための参照。サービスと画面は同一プロセス。 */
+    static volatile VolzzService instance;
+
     private AudioManager audio;
     private Prefs prefs;
     private ScreenOffHook screenOff;
+    private FineVolume fine;
+    private LevelHud hud;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     /** いま押されている音量キー。0 は「押されていない」。 */
@@ -62,31 +71,62 @@ public class VolzzService extends AccessibilityService {
         info.notificationTimeout = 0;
         setServiceInfo(info);
 
+        // 細かい音量。エフェクトはこのサービスが持つ。サービスが繋がっている間は
+        // プロセスが落ちないので、常駐のためのフォアグラウンドサービスは要らない。
+        if (fine == null) {
+            fine = new FineVolume(this, audio, prefs);
+            fine.start();
+        }
+        if (hud == null) {
+            hud = new LevelHud(this);
+        }
+
         if (screenOff == null) {
-            screenOff = new ScreenOffHook(this, audio, prefs);
+            screenOff = new ScreenOffHook(this, audio, prefs, fine);
             screenOff.start();
         }
 
+        instance = this;
         Prefs.serviceConnected = true;
         Prefs.note("サービスに接続しました");
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
+        instance = null;
         Prefs.serviceConnected = false;
         cancelPending();
         reset();
         stopScreenOffHook();
+        stopFine();
         Prefs.note("サービスが切断されました");
         return super.onUnbind(intent);
     }
 
     @Override
     public void onDestroy() {
+        instance = null;
         Prefs.serviceConnected = false;
         cancelPending();
         stopScreenOffHook();
+        stopFine();
         super.onDestroy();
+    }
+
+    private void stopFine() {
+        if (hud != null) {
+            hud.destroy();
+            hud = null;
+        }
+        if (fine != null) {
+            fine.stop();
+            fine = null;
+        }
+    }
+
+    /** 設定画面から覗く。 */
+    FineVolume fine() {
+        return fine;
     }
 
     private void stopScreenOffHook() {
@@ -185,9 +225,7 @@ public class VolzzService extends AccessibilityService {
             Prefs.note(label(code) + " 長押しから離した（音量は動かさない）");
         } else {
             // 短押しと確定した。預かっていた分をここで初めて反映する。
-            adjustVolume(code);
-            Prefs.note(label(code) + " 短押し → 音量を"
-                    + (code == KeyEvent.KEYCODE_VOLUME_UP ? "上げた" : "下げた"));
+            Prefs.note(label(code) + " 短押し → " + adjustVolume(code));
         }
 
         // DOWN を握り潰しているので UP も握り潰す（キーの対を崩さない）。
@@ -217,10 +255,38 @@ public class VolzzService extends AccessibilityService {
     // 音量
     // ------------------------------------------------------------------
 
-    /** 短押しと確定したときだけ呼ぶ。端末本来の音量操作と同じ見え方にする。 */
-    private void adjustVolume(int code) {
-        Media.adjust(audio, directionOf(code),
+    /**
+     * 短押しと確定したときだけ呼ぶ。
+     *
+     * 細かい音量が使える端末では 1 細段だけ動かし、volzz 自身の表示を出す。
+     * システムの音量パネルは出さない。パネルが示すのはハード段で、
+     * 細段を動かしても数コマに 1 度しか動かないため、かえって分からなくなる。
+     *
+     * 使えない端末では今までどおり、端末本来の音量操作と同じ見え方にする。
+     *
+     * @return 何をしたかの説明（診断に出す）
+     */
+    private String adjustVolume(int code) {
+        final int direction = directionOf(code);
+
+        // adjustSuggestedStreamVolume が狙うのはメディアだけとは限らない。
+        // 何も鳴っていないときは着信音量に向かうので、そこは触らずに従来どおりにする。
+        final boolean mediaIsTarget = audio.isMusicActive();
+
+        if (mediaIsTarget && fine != null && fine.canHandle()) {
+            int moved = fine.stepByKey(direction);
+            if (hud != null) {
+                hud.show(fine.level(), fine.steps(), fine.currentDb());
+            }
+            return "音量を" + (direction == AudioManager.ADJUST_RAISE ? "上げた" : "下げた")
+                    + "（" + fine.level() + "/" + fine.steps() + " 段"
+                    + (moved > 1 ? " ×" + moved : "") + "）";
+        }
+
+        Media.adjust(audio, direction,
                 AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
+        return "音量を" + (direction == AudioManager.ADJUST_RAISE ? "上げた" : "下げた")
+                + "（ハード 1 段）";
     }
 
     private static int directionOf(int code) {

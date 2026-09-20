@@ -1,20 +1,27 @@
 package com.volzz;
 
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.media.AudioManager;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.WindowInsets;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** 設定と、実機で動きを確かめるための状態表示。 */
 public class MainActivity extends Activity {
@@ -33,6 +40,13 @@ public class MainActivity extends Activity {
     private Switch swap;
     private SeekBar threshold;
     private TextView thresholdLabel;
+    private TextView fineStatus;
+    private Switch fineEnabled;
+    private SeekBar fineSteps;
+    private TextView fineStepsLabel;
+    private TextView fineStepsDetail;
+
+    private int pendingFineSteps;
 
     private final Runnable poll = new Runnable() {
         @Override
@@ -59,6 +73,11 @@ public class MainActivity extends Activity {
         swap = findViewById(R.id.swap);
         threshold = findViewById(R.id.threshold);
         thresholdLabel = findViewById(R.id.threshold_label);
+        fineStatus = findViewById(R.id.fine_status);
+        fineEnabled = findViewById(R.id.fine_enabled);
+        fineSteps = findViewById(R.id.fine_steps);
+        fineStepsLabel = findViewById(R.id.fine_steps_label);
+        fineStepsDetail = findViewById(R.id.fine_steps_detail);
 
         openSettings.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -126,6 +145,113 @@ public class MainActivity extends Activity {
             }
         });
 
+        pendingFineSteps = prefs.fineSteps();
+        fineEnabled.setChecked(prefs.fineEnabled());
+        fineEnabled.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton button, boolean checked) {
+                prefs.setFineEnabled(checked);
+                final FineVolume fv = fineVolume();
+                if (fv != null && !checked) {
+                    // 切ったら負ゲインを抜いて素通しに戻す。
+                    // 抜くぶん、音がハード 1 段分まで大きくなることがある。
+                    fv.neutralize();
+                }
+                showFineSteps();
+            }
+        });
+
+        fineSteps.setMax(FineScale.MAX_STEPS - FineScale.MIN_STEPS);
+        fineSteps.setProgress(pendingFineSteps - FineScale.MIN_STEPS);
+        fineSteps.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                pendingFineSteps = FineScale.clampSteps(progress + FineScale.MIN_STEPS);
+                showFineSteps();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar bar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar bar) {
+                prefs.setFineSteps(pendingFineSteps);
+                final FineVolume fv = fineVolume();
+                if (fv != null) {
+                    fv.setSteps(pendingFineSteps);
+                }
+                showFineSteps();
+            }
+        });
+        showFineSteps();
+    }
+
+    private FineVolume fineVolume() {
+        final VolzzService service = VolzzService.instance;
+        return service == null ? null : service.fine();
+    }
+
+    /** 段階数の表示。サービスが経がっていなくても端末のカーブは読めるので出す。 */
+    private void showFineSteps() {
+        fineStepsLabel.setText(getString(R.string.fine_steps_value, pendingFineSteps));
+
+        final VolumeCurve curve = currentCurve();
+        final float mine = FineScale.dbPerStep(curve, pendingFineSteps);
+        final float theirs = FineScale.dbPerStep(curve, curve.maxIndex + 1);
+        fineStepsDetail.setText(getString(R.string.fine_steps_detail,
+                mine, curve.maxIndex, theirs));
+    }
+
+    private VolumeCurve currentCurve() {
+        final FineVolume fv = fineVolume();
+        if (fv != null && fv.curve() != null) {
+            return fv.curve();
+        }
+        final AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        return VolumeCurve.read(am, VolumeCurve.currentOutputDeviceType(am));
+    }
+
+    /**
+     * volzz 以外に、音量キーを受け取るアクセシビリティサービスが有効になっていないか。
+     *
+     * Android はキーフィルタを要求している「すべての」サービスにキーを配る。
+     * 2 つの音量アプリが同時に有効だと、1 回の押しに両方が反応して二重に動く。
+     * AQUOS R8 での試験で実際にこれを踏んだ（上げ方向だけ 2 段進む症状になる）。
+     */
+    private List<String> otherKeyFilteringServices() {
+        final List<String> names = new ArrayList<>();
+        final AccessibilityManager manager =
+                (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+        if (manager == null) {
+            return names;
+        }
+        List<AccessibilityServiceInfo> list;
+        try {
+            list = manager.getEnabledAccessibilityServiceList(
+                    AccessibilityServiceInfo.FEEDBACK_ALL_MASK);
+        } catch (RuntimeException e) {
+            return names;
+        }
+        if (list == null) {
+            return names;
+        }
+        for (AccessibilityServiceInfo info : list) {
+            final String id = info.getId();
+            if (id == null || id.startsWith(getPackageName() + "/")) {
+                continue;
+            }
+            if ((info.getCapabilities()
+                    & AccessibilityServiceInfo.CAPABILITY_CAN_REQUEST_FILTER_KEY_EVENTS) == 0) {
+                continue;
+            }
+            final CharSequence label = (info.getResolveInfo() == null ? null
+                    : info.getResolveInfo().loadLabel(getPackageManager()));
+            names.add(label == null || label.length() == 0
+                    ? id.substring(0, Math.max(0, id.indexOf('/')))
+                    : label.toString());
+        }
+        return names;
     }
 
     @Override
@@ -182,6 +308,8 @@ public class MainActivity extends Activity {
         }
         openSettings.setText(granted ? R.string.open_settings_again : R.string.open_settings);
 
+        refreshFineStatus();
+
         final StringBuilder sb = new StringBuilder();
         if (prefs.vibrate() && Prefs.systemVibrationOff(this)) {
             // 端末側で切られていると volzz の振動も鳴らない。原因がここだと分かるように。
@@ -190,6 +318,10 @@ public class MainActivity extends Activity {
         sb.append(getString(R.string.diag_count, Prefs.keyEventCount));
         sb.append('\n').append(getString(R.string.diag_count_dark, Prefs.screenOffKeyCount));
         sb.append('\n').append(getString(R.string.diag_count_keep_top, Prefs.keepTopCount));
+
+        if (!TextUtils.isEmpty(Prefs.fineLastDetail)) {
+            sb.append('\n').append("細かい音量: ").append(Prefs.fineLastDetail);
+        }
 
         final String[] notes = Prefs.recentNotes();
         if (notes.length > 0) {
@@ -201,6 +333,38 @@ public class MainActivity extends Activity {
             sb.append('\n').append(getString(R.string.diag_last, Prefs.lastNote));
         }
         diag.setText(sb.toString());
+    }
+
+    private void refreshFineStatus() {
+        final FineVolume fv = fineVolume();
+        final VolumeCurve curve = currentCurve();
+        final StringBuilder sb = new StringBuilder();
+
+        if (fv == null) {
+            sb.append(getString(R.string.fine_st_waiting));
+        } else if (!fv.hasEffect()) {
+            sb.append(getString(R.string.fine_st_effect_none));
+        } else if (fv.effectBestEffort()) {
+            sb.append(getString(R.string.fine_st_effect_weak, fv.effectLabel()));
+        } else {
+            sb.append(getString(R.string.fine_st_effect, fv.effectLabel()));
+        }
+
+        sb.append('\n').append(getString(R.string.fine_st_device,
+                VolumeCurve.deviceLabel(curve.deviceType), curve.maxIndex, curve.floorDb()));
+
+        if (fv != null && fv.hasEffect()) {
+            sb.append('\n').append(getString(R.string.fine_st_level,
+                    fv.level(), fv.steps(), fv.currentDb()));
+        }
+
+        final List<String> rivals = otherKeyFilteringServices();
+        if (!rivals.isEmpty()) {
+            sb.append('\n').append(getString(R.string.fine_st_conflict,
+                    TextUtils.join("、", rivals)));
+        }
+
+        fineStatus.setText(sb.toString());
     }
 
     /** 設定画面でこのサービスが有効にされているか。権限は要らない。 */

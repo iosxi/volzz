@@ -100,6 +100,51 @@
             style="@style/Hint"
             android:text="@string/swap_desc" />
 
+        <!-- 細かい音量 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/fine_title" />
+
+        <TextView
+            android:id="@+id/fine_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp" />
+
+        <Switch
+            android:id="@+id/fine_enabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/fine_enabled_label"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/fine_enabled_desc" />
+
+        <TextView
+            android:id="@+id/fine_steps_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/fine_steps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/fine_steps_detail"
+            style="@style/Hint" />
+
+        <TextView
+            style="@style/Hint"
+            android:text="@string/fine_desc" />
+
         <!-- 長押し時間 -->
         <TextView
             style="@style/SectionTitle"

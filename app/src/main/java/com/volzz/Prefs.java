@@ -16,6 +16,10 @@ public final class Prefs {
     private static final String K_ONLY_PLAYING = "only_while_playing";
     private static final String K_SWAP = "swap";
     private static final String K_VIBRATE = "vibrate";
+    private static final String K_FINE = "fine_enabled";
+    private static final String K_FINE_STEPS = "fine_steps";
+    private static final String K_FINE_LEVEL = "fine_level";
+    private static final String K_FINE_LAST_HW = "fine_last_hw";
 
     public static final int THRESHOLD_MIN = 250;
     public static final int THRESHOLD_MAX = 1000;
@@ -32,6 +36,8 @@ public final class Prefs {
     public static volatile boolean screenOffArmed = false;
     /** 受け皿を優先順位の先頭に押し戻した回数。 */
     public static volatile int keepTopCount = 0;
+    /** 細かい音量で最後に何をしたか。設定画面の診断に出す。 */
+    public static volatile String fineLastDetail = "";
 
     /** 直近の動きを何件残すか。画面が消えている間の分をあとから読むために要る。 */
     private static final int LOG_SIZE = 14;
@@ -98,6 +104,45 @@ public final class Prefs {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    // ------------------------------------------------------------------
+    // 細かい音量（ハード段階より細かく刻む）
+    // ------------------------------------------------------------------
+
+    /** 細かい音量を使うか。切ると volzz 本来の 1 段ずつの操作になる。 */
+    public boolean fineEnabled() {
+        return sp.getBoolean(K_FINE, true);
+    }
+
+    public void setFineEnabled(boolean value) {
+        sp.edit().putBoolean(K_FINE, value).apply();
+    }
+
+    public int fineSteps() {
+        return FineScale.clampSteps(sp.getInt(K_FINE_STEPS, FineScale.DEFAULT_STEPS));
+    }
+
+    public void setFineSteps(int value) {
+        sp.edit().putInt(K_FINE_STEPS, FineScale.clampSteps(value)).apply();
+    }
+
+    /** 前回どの段にいたか。-1 は記録なし。 */
+    public int fineLevel() {
+        return sp.getInt(K_FINE_LEVEL, -1);
+    }
+
+    public void setFineLevel(int value) {
+        sp.edit().putInt(K_FINE_LEVEL, value).apply();
+    }
+
+    /** 前回 volzz が置いたハード段。復元してよいかの判定に使う。 */
+    public int fineLastHwIndex() {
+        return sp.getInt(K_FINE_LAST_HW, -1);
+    }
+
+    public void setFineLastHwIndex(int value) {
+        sp.edit().putInt(K_FINE_LAST_HW, value).apply();
     }
 
     public void setVibrate(boolean value) {

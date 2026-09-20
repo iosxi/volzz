@@ -2,10 +2,10 @@
 <resources>
     <string name="app_name">volzz</string>
 
-    <string name="service_description">音量キーの長押しで曲送り・曲戻しをします。画面の内容は一切読み取りません。音量キー以外のキーには触れません。</string>
-    <string name="service_summary">音量キーの長押しで曲送り</string>
+    <string name="service_description">音量キーの長押しで曲送り・曲戻しを、短押しでハードウェア段階より細かい音量調整をします。画面の内容は一切読み取りません。音量キー以外のキーには触れません。</string>
+    <string name="service_summary">音量キーの長押しで曲送り、短押しで細かい音量</string>
 
-    <string name="intro">音量アップの長押しで次の曲へ、音量ダウンの長押しで前の曲へ。短押しはこれまでどおりの音量操作です。</string>
+    <string name="intro">音量アップの長押しで次の曲へ、音量ダウンの長押しで前の曲へ。短押しは音量操作で、端末のハードウェア段階より細かく刻めます。</string>
 
     <string name="status_title">状態</string>
     <string name="status_running">動作中</string>
@@ -29,12 +29,32 @@
     <string name="swap_label">上下を入れ替える</string>
     <string name="swap_desc">音量アップの長押しで前の曲、音量ダウンの長押しで次の曲になります。</string>
 
+    <string name="fine_title">細かい音量</string>
+    <string name="fine_enabled_label">ハード段階より細かく刻む</string>
+    <string name="fine_enabled_desc">短押し 1 回で動く量を細かくします。切ると今までどおり 1 押し 1 段です。長押しの曲送りはどちらでも変わりません。</string>
+    <string name="fine_steps_value">%1$d 段</string>
+    <string name="fine_steps_detail">1 段あたり約 %1$.2f dB。この端末の標準は %2$d 段で、1 段あたり約 %3$.2f dB です。</string>
+    <string name="fine_desc">端末のハード段階は増やせません（起動時に読まれる読み取り専用の設定で決まります）。そこで段と段の隙間を、音声エフェクトの負のゲインで埋めています。
+
+狙いの音量以上でいちばん近いハード段を選び、残りをゲインで埋めるので、万一エフェクトが効かなくなっても音はハード 1 段分しか跳ねません。
+
+大きく変えたいときは続けて連打してください。連打している間だけ歩幅が広がります（長押しは曲送りなので使えません）。</string>
+    <string name="fine_st_effect">減衰の手段: %1$s</string>
+    <string name="fine_st_effect_weak">減衰の手段: %1$s（効き方が端末依存の控えです。実際に音が変わるか確かめてください）</string>
+    <string name="fine_st_effect_none">減衰の手段: 掴めませんでした。この端末では細かく刻めません。</string>
+    <string name="fine_st_waiting">減衰の手段: サービスの接続待ち</string>
+    <string name="fine_st_device">出力先: %1$s / ハード段階 %2$d 段 / 下限は最大より %3$.1f dB 下</string>
+    <string name="fine_st_level">いまの音量: %1$d / %2$d 段目（最大より %3$.1f dB 下）</string>
+    <string name="fine_st_conflict">⚠ 音量キーを受け取る別のアプリが有効です: %1$s
+
+Android はキーを両方のアプリに配るため、1 回の押しに両方が反応して二重に動きます。どちらか一方だけを有効にしてください。</string>
+
     <string name="threshold_title">長押しと判定する時間</string>
     <string name="threshold_value">%1$d ミリ秒</string>
     <string name="threshold_desc">この時間を超えて押し続けると曲送りになります。短くすると曲送りが速くなりますが、少し長めの音量操作が誤って曲送りになりやすくなります。</string>
 
     <string name="mode_title">短押しの扱い</string>
-    <string name="mode_desc">volzz は音量キーを完全に横取りし、指を離して「短押しだった」と確定してから音量を動かします。そのため曲送りのときに音量が動くことは一度もありません。画面が消えている間も同じで、こちらはメディアセッション経由でキーを受け取ります。\n\n短押しの反応が遅れるのは、実際にボタンを押していた時間のぶんだけです。軽くタップするぶんにはほとんど分かりません。押した瞬間に音量を動かしてしまうと、長押しだったと分かった時点で戻すしかなく、音量が 1 段上がってから下がる動きになるため、この方式にしています。</string>
+    <string name="mode_desc">volzz は音量キーを完全に横取りし、指を離して「短押しだった」と確定してから音量を動かします。動かす量は「細かい音量」の設定で決まります。そのため曲送りのときに音量が動くことは一度もありません。画面が消えている間も同じで、こちらはメディアセッション経由でキーを受け取ります。\n\n短押しの反応が遅れるのは、実際にボタンを押していた時間のぶんだけです。軽くタップするぶんにはほとんど分かりません。押した瞬間に音量を動かしてしまうと、長押しだったと分かった時点で戻すしかなく、音量が 1 段上がってから下がる動きになるため、この方式にしています。</string>
 
     <string name="diag_title">動作確認</string>
     <string name="diag_count">受け取った音量キーイベント: %1$d 回</string>

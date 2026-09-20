@@ -60,6 +60,8 @@ final class ScreenOffHook {
     private final Context context;
     private final AudioManager audio;
     private final Prefs prefs;
+    /** 細かい音量。画面が点いているときと同じものを使い回す（エフェクトは 1 つだけ）。 */
+    private final FineVolume fine;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     /** 画面が消えている間だけ存在する受け皿。 */
@@ -111,10 +113,11 @@ final class ScreenOffHook {
         }
     };
 
-    ScreenOffHook(Context context, AudioManager audio, Prefs prefs) {
+    ScreenOffHook(Context context, AudioManager audio, Prefs prefs, FineVolume fine) {
         this.context = context;
         this.audio = audio;
         this.prefs = prefs;
+        this.fine = fine;
     }
 
     void start() {
@@ -318,13 +321,25 @@ final class ScreenOffHook {
         }
 
         // 短押しと確定した。預かっていた分をここで初めて反映する。
-        // 画面が消えているので音量パネルも操作音も出さない。
+        // 画面が消えているので音量パネルも操作音も、volzz 自身の表示も出さない。
+        //
+        // ここは Media.adjustMusic() と同じく必ずメディア音量に向かう経路なので、
+        // 画面が点いているときのような「宛先がメディアかどうか」の判定は要らない。
+        if (fine != null && fine.canHandle()) {
+            int moved = fine.stepByKey(direction);
+            Prefs.note(label(direction) + " 短押し → 音量を"
+                    + (direction == AudioManager.ADJUST_RAISE ? "上げた" : "下げた")
+                    + "（" + fine.level() + "/" + fine.steps() + " 段"
+                    + (moved > 1 ? " ×" + moved : "") + "・画面消灯中）");
+            return;
+        }
+
         // 動かすのは Media.adjustMusic()。adjustSuggestedStreamVolume() だと
         // 自分の受け皿に戻ってきてしまう（Media.adjustMusic のコメント）。
         Media.adjustMusic(audio, direction);
         Prefs.note(label(direction) + " 短押し → 音量を"
                 + (direction == AudioManager.ADJUST_RAISE ? "上げた" : "下げた")
-                + "（画面消灯中）");
+                + "（ハード 1 段・画面消灯中）");
     }
 
     private void onLongPress() {

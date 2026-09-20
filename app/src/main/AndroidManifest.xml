@@ -10,10 +10,14 @@
       VIBRATE は保護レベル normal（インストール時に自動で付き、許可を尋ねる
       ダイアログも出ない）。振動以外には何もできない権限で、v7 で曲送りの
       手応えを出すために足した。設定でオフにもできる。
+      MODIFY_AUDIO_SETTINGS は細かい音量（ハード段階より細かく刻む）に使う。
+      全体のミックスに負のゲインを掛ける音声エフェクトを作るのに要る。
+      保護レベルは normal で、こちらも許可を尋ねるダイアログは出ない。
       BIND_ACCESSIBILITY_SERVICE は「システムだけがこのサービスに接続できる」
       ことを宣言する保護用で、アプリが要求する権限ではない。
     -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
         android:allowBackup="false"
