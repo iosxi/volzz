@@ -2,10 +2,10 @@
 <resources>
     <string name="app_name">volzz</string>
 
-    <string name="service_description">音量キーの長押しで曲送り・曲戻しを、短押しでハードウェア段階より細かい音量調整をします。画面の内容は一切読み取りません。音量キー以外のキーには触れません。</string>
+    <string name="service_description">音量キーの長押し・超長押しで曲送りやアプリ起動を、短押しでハードウェア段階より細かい音量調整をします。画面の内容は一切読み取りません。音量キー以外のキーには触れません。</string>
     <string name="service_summary">音量キーの長押しで曲送り、短押しで細かい音量</string>
 
-    <string name="intro">音量アップの長押しで次の曲へ、音量ダウンの長押しで前の曲へ。短押しは音量操作で、端末のハードウェア段階より細かく刻めます。</string>
+    <string name="intro">音量アップの長押しで次の曲へ、音量ダウンの長押しで前の曲へ。さらに押し続けると超長押しで、別の動作を割り当てられます。短押しは音量操作で、端末のハードウェア段階より細かく刻めます。</string>
 
     <string name="status_title">状態</string>
     <string name="status_running">動作中</string>
@@ -22,12 +22,30 @@
     <string name="only_while_playing_label">再生中だけ介入する</string>
     <string name="only_while_playing_desc">音が鳴っていないときは音量キーを完全に素通しします。</string>
 
-    <string name="vibrate_label">曲送りのときに振動する</string>
+    <string name="vibrate_label">長押しのときに振動する</string>
     <string name="vibrate_off_warning">※ 端末側のバイブレーションがオフです（設定 → 音と振動）。このままでは volzz の振動も鳴りません。</string>
-    <string name="vibrate_desc">長押しで曲を送ったときに短く振動します。次の曲は 1 回、前の曲は 2 回。画面を見なくても、どちらに動いたか分かります。</string>
+    <string name="vibrate_desc">振り方は動作ごとに違います。次の曲は短く 1 回、前の曲は短く 2 回、再生／一時停止は長く 1 回、アプリ起動は短く 3 回。画面を見なくても、何が起きたか分かります。\n\n超長押しを割り当てたキーでは、長押しの時間に達したところで「離せばこれが起きる」という予告として同じ振り方で 1 度鳴り、そのまま超長押しに達するともう一度、そちらの振り方で鳴ります。</string>
 
-    <string name="swap_label">上下を入れ替える</string>
-    <string name="swap_desc">音量アップの長押しで前の曲、音量ダウンの長押しで次の曲になります。</string>
+    <string name="assign_title">長押しに割り当てる動作</string>
+    <string name="assign_desc">4 つのトリガーそれぞれに動作を選べます。超長押しに「なし」以外を割り当てると、そのキーの長押しは指を離した瞬間に実行されるようになります（押し続けている間は、長押しと超長押しのどちらになるかがまだ決まらないため）。\n\n長押しにも超長押しにも「なし」を割り当てたキーは、押しっぱなしで音量が動き続けます。</string>
+    <string name="assign_up_long">音量アップ 長押し</string>
+    <string name="assign_down_long">音量ダウン 長押し</string>
+    <string name="assign_up_super">音量アップ 超長押し</string>
+    <string name="assign_down_super">音量ダウン 超長押し</string>
+    <string name="assign_row">%1$s\n%2$s</string>
+    <string name="assign_pick_action">%1$s</string>
+    <string name="assign_pick_app">起動するアプリ</string>
+    <string name="assign_loading">アプリを探しています…</string>
+
+    <string name="action_none">なし</string>
+    <string name="action_next">次の曲</string>
+    <string name="action_previous">前の曲</string>
+    <string name="action_play_pause">再生／一時停止</string>
+    <string name="action_app">アプリを起動…</string>
+    <string name="action_app_named">%1$s を起動</string>
+    <string name="action_app_unset">アプリ未選択</string>
+    <string name="action_app_missing">アプリが見つかりません（%1$s）</string>
+    <string name="action_app_failed">アプリを起動できませんでした: %1$s</string>
 
     <string name="fine_title">細かい音量</string>
     <string name="fine_enabled_label">ハード段階より細かく刻む</string>
@@ -51,7 +69,12 @@ Android はキーを両方のアプリに配るため、1 回の押しに両方�
 
     <string name="threshold_title">長押しと判定する時間</string>
     <string name="threshold_value">%1$d ミリ秒</string>
-    <string name="threshold_desc">この時間を超えて押し続けると曲送りになります。短くすると曲送りが速くなりますが、少し長めの音量操作が誤って曲送りになりやすくなります。</string>
+    <string name="threshold_desc">この時間を超えて押し続けると長押しになります。短くすると長押しが速くなりますが、少し長めの音量操作が誤って長押しになりやすくなります。</string>
+
+    <string name="super_threshold_title">超長押しと判定する時間</string>
+    <string name="super_threshold_value">%1$d ミリ秒</string>
+    <string name="super_threshold_detail">長押し（%1$d ミリ秒）から %2$d ミリ秒後。</string>
+    <string name="super_threshold_desc">押し始めてからこの時間に達すると超長押しになります。長押しからは必ず %1$d ミリ秒以上空きます（長押しの時間を後から伸ばした場合も、ここが押し下げられて間隔は保たれます）。\n\n超長押しに「なし」しか割り当てていない間は、この設定は使われません。</string>
 
     <string name="mode_title">短押しの扱い</string>
     <string name="mode_desc">volzz は音量キーを完全に横取りし、指を離して「短押しだった」と確定してから音量を動かします。動かす量は「細かい音量」の設定で決まります。そのため曲送りのときに音量が動くことは一度もありません。画面が消えている間も同じで、こちらはメディアセッション経由でキーを受け取ります。\n\n短押しの反応が遅れるのは、実際にボタンを押していた時間のぶんだけです。軽くタップするぶんにはほとんど分かりません。押した瞬間に音量を動かしてしまうと、長押しだったと分かった時点で戻すしかなく、音量が 1 段上がってから下がる動きになるため、この方式にしています。</string>
@@ -65,5 +88,5 @@ Android はキーを両方のアプリに配るため、1 回の押しに両方�
     <string name="diag_desc">この画面を開いたまま音量キーを押すと、volzz がキーを受け取れているか確認できます。数字が増えなければキーが届いていません。\n\n画面が消えている間の分は 2 行目に数えます。画面を消して音量キーを押し、画面を点けてからこの画面を開けば、そのときの動きが「最近の動き」に残っています。同じ行は logcat にも出ます（adb logcat -s volzz）。</string>
 
     <string name="perm_title">このアプリが使う権限</string>
-    <string name="perm_desc">振動（VIBRATE）だけ。曲送りの合図に使います。上の「曲送りのときに振動する」をオフにすれば一度も使いません。\n\nインターネット接続も、通知も、位置情報も、ストレージも使いません。ほかに必要なのはアクセシビリティ設定での有効化だけです。</string>
+    <string name="perm_desc">振動（VIBRATE）だけ。長押しの合図に使います。上の「長押しのときに振動する」をオフにすれば一度も使いません。\n\nインターネット接続も、通知も、位置情報も、ストレージも使いません。ほかに必要なのはアクセシビリティ設定での有効化だけです。\n\nアプリ起動の割り当てで一覧に出るのは、ホーム画面に並ぶアプリ（ランチャーから起動できるアプリ）だけです。すべてのアプリを見る権限（QUERY_ALL_PACKAGES）は取っていません。</string>
 </resources>

@@ -88,17 +88,38 @@
             style="@style/Hint"
             android:text="@string/vibrate_desc" />
 
-        <Switch
-            android:id="@+id/swap"
+        <!-- 割り当て -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/assign_title" />
+
+        <Button
+            android:id="@+id/assign_up_long"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/swap_label"
-            android:textSize="16sp" />
+            android:layout_marginTop="4dp" />
+
+        <Button
+            android:id="@+id/assign_down_long"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <Button
+            android:id="@+id/assign_up_super"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <Button
+            android:id="@+id/assign_down_super"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
 
         <TextView
             style="@style/Hint"
-            android:text="@string/swap_desc" />
+            android:text="@string/assign_desc" />
 
         <!-- 細かい音量 -->
         <TextView
@@ -166,6 +187,32 @@
         <TextView
             style="@style/Hint"
             android:text="@string/threshold_desc" />
+
+        <!-- 超長押し時間 -->
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/super_threshold_title" />
+
+        <TextView
+            android:id="@+id/super_threshold_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/super_threshold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/super_threshold_detail"
+            style="@style/Hint" />
+
+        <TextView
+            android:id="@+id/super_threshold_desc"
+            style="@style/Hint" />
 
         <!-- 短押しの扱い -->
         <TextView

@@ -14,7 +14,10 @@ public final class Prefs {
     private static final String K_ENABLED = "enabled";
     private static final String K_THRESHOLD = "threshold_ms";
     private static final String K_ONLY_PLAYING = "only_while_playing";
-    private static final String K_SWAP = "swap";
+    private static final String K_SWAP = "swap";          // v11 まで。いまは既定値の出どころ
+    private static final String K_SUPER_THRESHOLD = "super_threshold_ms";
+    private static final String K_ACTION = "action_";     // + トリガー名
+    private static final String K_ACTION_APP = "action_app_";
     private static final String K_VIBRATE = "vibrate";
     private static final String K_FINE = "fine_enabled";
     private static final String K_FINE_STEPS = "fine_steps";
@@ -24,6 +27,12 @@ public final class Prefs {
     public static final int THRESHOLD_MIN = 250;
     public static final int THRESHOLD_MAX = 1000;
     public static final int THRESHOLD_DEFAULT = 450;
+
+    public static final int SUPER_MIN = 600;
+    public static final int SUPER_MAX = 2000;
+    public static final int SUPER_DEFAULT = 1000;
+    /** 長押しと超長押しの最小の間隔。近すぎると指では撃ち分けられない。 */
+    public static final int SUPER_GAP_MIN = 200;
 
     /** 診断用。サービスと画面は同一プロセスなので static で共有できる。 */
     public static volatile String lastNote = "";
@@ -77,12 +86,72 @@ public final class Prefs {
         sp.edit().putBoolean(K_ONLY_PLAYING, value).apply();
     }
 
-    public boolean swap() {
+    /**
+     * v11 までの「上下を入れ替える」設定。
+     *
+     * v12 でトリガーごとの割り当てに置き換えたので、設定画面からは消えた。
+     * それでも読むのは、入れ替えて使っていた人の長押しが、更新した途端に
+     * 逆を向かないようにするため。割り当ての既定値（まだ一度も選んでいない
+     * ときの値）をここから決める。一度選べばそちらが保存され、この値は
+     * 二度と見られない。
+     */
+    private boolean legacySwap() {
         return sp.getBoolean(K_SWAP, false);
     }
 
-    public void setSwap(boolean value) {
-        sp.edit().putBoolean(K_SWAP, value).apply();
+    // ------------------------------------------------------------------
+    // 長押し・超長押しに割り当てる動作
+    // ------------------------------------------------------------------
+
+    /** トリガーの名前。保存するキーの一部になるので、値を変えてはいけない。 */
+    static String trigger(boolean up, boolean superPress) {
+        return (up ? "up" : "down") + (superPress ? "_super" : "_long");
+    }
+
+    /** そのトリガーに割り当てられた動作（{@link Action} の値）。 */
+    public int action(boolean up, boolean superPress) {
+        return sp.getInt(K_ACTION + trigger(up, superPress), defaultAction(up, superPress));
+    }
+
+    public void setAction(boolean up, boolean superPress, int action) {
+        sp.edit().putInt(K_ACTION + trigger(up, superPress), action).apply();
+    }
+
+    /**
+     * 既定の割り当て。長押しは v11 までの動き（入れ替え設定も含めて）そのまま、
+     * 超長押しは何も割り当てない。更新しただけでは何も変わらないようにしている。
+     */
+    private int defaultAction(boolean up, boolean superPress) {
+        if (superPress) {
+            return Action.NONE;
+        }
+        return (up != legacySwap()) ? Action.NEXT : Action.PREVIOUS;
+    }
+
+    /** そのトリガーで起動するアプリ。トリガーごとに別のアプリを選べる。 */
+    public String appPackage(boolean up, boolean superPress) {
+        return sp.getString(K_ACTION_APP + trigger(up, superPress), "");
+    }
+
+    public void setAppPackage(boolean up, boolean superPress, String pkg) {
+        sp.edit().putString(K_ACTION_APP + trigger(up, superPress), pkg == null ? "" : pkg).apply();
+    }
+
+    /**
+     * 超長押しと判定する時間。長押しから {@link #SUPER_GAP_MIN} ミリ秒は必ず空ける。
+     *
+     * 長押しの時間を後から伸ばしても撃ち分けられなくならないよう、読むたびに押し下げる。
+     */
+    public int superThresholdMs() {
+        int v = sp.getInt(K_SUPER_THRESHOLD, SUPER_DEFAULT);
+        if (v < SUPER_MIN) v = SUPER_MIN;
+        if (v > SUPER_MAX) v = SUPER_MAX;
+        final int floor = thresholdMs() + SUPER_GAP_MIN;
+        return Math.max(v, floor);
+    }
+
+    public void setSuperThresholdMs(int value) {
+        sp.edit().putInt(K_SUPER_THRESHOLD, value).apply();
     }
 
     public boolean vibrate() {

@@ -68,35 +68,24 @@ final class Media {
         }
     }
 
-    /** 長押しの向きを、設定の入れ替えを踏まえて「次の曲か」に変える。 */
-    static boolean isNext(int direction, boolean swap) {
-        return (direction == AudioManager.ADJUST_RAISE) != swap;
-    }
-
     // ------------------------------------------------------------------
     // 手応え
     // ------------------------------------------------------------------
 
-    /** 次の曲。短く 1 回。 */
-    private static final long[] NEXT_PATTERN = {0L, 40L};
-    /** 前の曲。短く 2 回。ポケットの中でも向きが分かる。 */
-    private static final long[] PREVIOUS_PATTERN = {0L, 25L, 70L, 25L};
-
     /**
-     * 曲送りを送った合図として短く振動させる。
+     * 合図として短く振動させる。振り方は {@link Action} が動作ごとに決める。
      *
      * ここで分かるのは「メディアキーを送れた」ことまでで、プレイヤーが実際に
      * 曲を変えたかどうかは分からない。dispatchMediaKeyEvent() は結果を返さず、
      * プレイヤーの状態を覗くには通知へのアクセス権が要る（volzz は取らない）。
      */
-    static void buzz(Context context, boolean next) {
+    static void buzz(Context context, long[] pattern) {
         final Vibrator vibrator = vibrator(context);
-        if (vibrator == null || !vibrator.hasVibrator()) {
+        if (vibrator == null || !vibrator.hasVibrator() || pattern == null) {
             return;
         }
         try {
-            vibrator.vibrate(VibrationEffect.createWaveform(
-                    next ? NEXT_PATTERN : PREVIOUS_PATTERN, -1));
+            vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
         } catch (Exception e) {
             Prefs.note("振動できませんでした: " + e.getMessage());
         }

@@ -19,6 +19,20 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!--
+      長押しに「アプリ起動」を割り当てるとき、選べるアプリの一覧を出すために要る。
+      Android 11 以降、ほかのアプリは既定では見えない。ここで「ランチャーから
+      起動できるアプリ」とだけ宣言しておけば、ホーム画面に並ぶアプリが見える。
+      すべてのアプリを見る QUERY_ALL_PACKAGES は取らない（取ると Google Play の
+      審査対象になるうえ、volzz には過剰な覗き見になる）。
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

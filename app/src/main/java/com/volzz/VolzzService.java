@@ -11,7 +11,7 @@ import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
 /**
- * 音量キーの長押しを曲送り・曲戻しに割り当てる。
+ * 音量キーの長押し・超長押しに、割り当てられた動作を結びつける。
  *
  * アクセシビリティサービスはシステムが束縛して常駐させるので、常駐のための
  * フォアグラウンドサービスも通知も自動起動の権限も要らない。端末を再起動しても
@@ -23,7 +23,13 @@ import android.view.accessibility.AccessibilityEvent;
  *
  * 短押しで動かす量は {@link FineVolume} が決める。端末のハード段階より細かく刻める
  * 端末では 1 押し 1 細段になり、そうでない端末では今までどおり 1 押し 1 ハード段になる。
- * 長押しの曲送りはどちらでも変わらない。
+ * 長押し・超長押しの動作はどちらでも変わらない。
+ *
+ * <p><b>長押しの動作を離すまで実行しない場合がある。</b> 超長押しが割り当てられて
+ * いるキーでは、長押しの時間に達した時点ではまだ「どちらになるか」が決まっていない。
+ * そこで実行してしまうと、そのまま押し続けて超長押しになったときに 2 つの動作が
+ * 続けて起きる。だから長押しの時間では合図の振動だけを返し、実行は離すまで預かる。
+ * 超長押しが「なし」のキーは待つ理由が無いので、v11 までと同じくその場で実行する。
  */
 public class VolzzService extends AccessibilityService {
 
@@ -43,19 +49,36 @@ public class VolzzService extends AccessibilityService {
     private LevelHud hud;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
+    /** まだ長押しの時間に達していない。離せば短押し。 */
+    private static final int STAGE_SHORT = 0;
+    /** 長押しの時間に達した。離せば長押しの動作（超長押しがあるので預かっている）。 */
+    private static final int STAGE_LONG = 1;
+    /** もう実行した。離しても何も起きない。 */
+    private static final int STAGE_DONE = 2;
+
     /** いま押されている音量キー。0 は「押されていない」。 */
     private int heldKey = 0;
     /** この押下を volzz が見張っているか。DOWN で決め、UP まで変えない。 */
     private boolean armed = false;
-    /** この押下で長押しが成立したか。 */
-    private boolean longFired = false;
-    /** この押下では曲送りをせず、音量だけを動かすか。DOWN で決め、UP まで変えない。 */
+    /** この押下がどこまで進んだか。 */
+    private int stage = STAGE_SHORT;
+    /** この押下では動作を起こさず、音量だけを動かすか。DOWN で決め、UP まで変えない。 */
     private boolean volumeOnly = false;
+    /** この押下に割り当てられている動作。DOWN で読み、UP まで変えない。 */
+    private int longAction = Action.NONE;
+    private int superAction = Action.NONE;
 
     private final Runnable longPressTask = new Runnable() {
         @Override
         public void run() {
             onLongPress();
+        }
+    };
+
+    private final Runnable superPressTask = new Runnable() {
+        @Override
+        public void run() {
+            onSuperPress();
         }
     };
 
@@ -188,10 +211,19 @@ public class VolzzService extends AccessibilityService {
     private boolean handleDown(int code) {
         cancelPending();
 
-        // 「再生中だけ介入する」が意味するのは曲送りのほうだけにする。何も鳴っていない
-        // ときでも音量は細かく刻みたい（ここを素通しにすると、再生していない間だけ
-        // ハード 1 段ずつに戻ってしまい、100 段にした意味がなくなる）。
-        volumeOnly = prefs.onlyWhilePlaying() && !audio.isMusicActive();
+        final boolean up = (code == KeyEvent.KEYCODE_VOLUME_UP);
+        longAction = prefs.action(up, false);
+        superAction = prefs.action(up, true);
+
+        // 「再生中だけ介入する」が意味するのは長押しの動作のほうだけにする。何も鳴って
+        // いないときでも音量は細かく刻みたい（ここを素通しにすると、再生していない間
+        // だけハード 1 段ずつに戻ってしまい、100 段にした意味がなくなる）。
+        final boolean silent = prefs.onlyWhilePlaying() && !audio.isMusicActive();
+        // 長押しにも超長押しにも何も割り当てていないキーは、押し続けても起きることが
+        // 無い。それなら端末本来のように、押しっぱなしで音量が動き続けるほうがいい。
+        final boolean nothingAssigned =
+                (longAction == Action.NONE && superAction == Action.NONE);
+        volumeOnly = silent || nothingAssigned;
 
         if (!mediaIsTarget()) {
             // 通話中や着信中。音量キーはメディア以外に向かうべきなので手を出さない。
@@ -203,13 +235,14 @@ public class VolzzService extends AccessibilityService {
             // 細かく刻めないなら横取りする値打ちがない。素通しにしておけば
             // 端末本来の音量操作（自動リピートも音量パネルも）がそのまま働く。
             reset();
-            Prefs.note("素通し（再生中ではない・細かい音量は使えない）");
+            Prefs.note("素通し（" + (silent ? "再生中ではない" : "長押しに何も割り当てていない")
+                    + "・細かい音量は使えない）");
             return false;
         }
 
         armed = true;
         heldKey = code;
-        longFired = false;
+        stage = STAGE_SHORT;
         handler.postDelayed(longPressTask, prefs.thresholdMs());
 
         // ここでは音量を動かさない。
@@ -234,52 +267,103 @@ public class VolzzService extends AccessibilityService {
         }
         cancelPending();
 
-        final boolean wasLongPress = longFired;
-        final boolean wasVolumeOnly = volumeOnly;
-        reset();
-
-        if (wasLongPress && wasVolumeOnly) {
-            // 押しっぱなしの間ずっと音量を刻んでいた。刻むたびに記録すると
-            // 直近の記録が埋まってしまうので、離したときに 1 行だけ残す。
-            Prefs.note(label(code) + " 押しっぱなし → 音量を動かした"
-                    + (fine == null ? "" : "（" + fine.level() + "/" + fine.steps() + " 段）"));
-        } else if (wasLongPress) {
-            // 曲送りは済んでいる。音量には触らない。
-            Prefs.note(label(code) + " 長押しから離した（音量は動かさない）");
+        if (volumeOnly) {
+            if (stage != STAGE_SHORT) {
+                // 押しっぱなしの間ずっと音量を刻んでいた。刻むたびに記録すると
+                // 直近の記録が埋まってしまうので、離したときに 1 行だけ残す。
+                Prefs.note(label(code) + " 押しっぱなし → 音量を動かした"
+                        + (fine == null ? "" : "（" + fine.level() + "/" + fine.steps() + " 段）"));
+            } else {
+                // 短押しと確定した。預かっていた分をここで初めて反映する。
+                Prefs.note(label(code) + " 短押し → " + adjustVolume(code));
+            }
+        } else if (stage == STAGE_LONG) {
+            // 長押しの時間は越えたが、超長押しには届かなかった。預かっていた
+            // 動作をここで実行する。合図の振動は長押しに達した時点で返してある。
+            fire(code, false, false);
+        } else if (stage == STAGE_DONE) {
+            // 長押しか超長押しで実行済み。音量には触らない。
+            Prefs.note(label(code) + " 離した（音量は動かさない）");
         } else {
             // 短押しと確定した。預かっていた分をここで初めて反映する。
             Prefs.note(label(code) + " 短押し → " + adjustVolume(code));
         }
+        reset();
 
         // DOWN を握り潰しているので UP も握り潰す（キーの対を崩さない）。
         return true;
     }
 
+    /** 長押しの時間に達した。 */
     private void onLongPress() {
         if (!armed) {
             return;
         }
-        longFired = true;
         final int code = heldKey;
 
         if (volumeOnly) {
-            // 何も鳴っていないので曲送りはしない。素通しをやめた代わりに、
+            // 動作を起こさない押下なので、素通しをやめた代わりに、
             // 端末本来の「押しっぱなしで動き続ける」を自前で出す。
+            stage = STAGE_LONG;
             adjustVolume(code);
             handler.postDelayed(longPressTask, VOLUME_REPEAT_MS);
             return;
         }
 
-        final boolean next = Media.isNext(directionOf(code), prefs.swap());
-        Media.sendKey(audio, next ? KeyEvent.KEYCODE_MEDIA_NEXT : KeyEvent.KEYCODE_MEDIA_PREVIOUS);
-        if (prefs.vibrate()) {
-            Media.buzz(this, next);
+        if (superAction != Action.NONE) {
+            // ここではまだ実行しない（クラス説明の「離すまで実行しない場合がある」）。
+            stage = STAGE_LONG;
+            if (prefs.vibrate()) {
+                Media.buzz(this, Action.checkpointPattern(longAction));
+            }
+            handler.postDelayed(superPressTask, superDelayMs());
+            Prefs.note(label(code) + " 長押しに達した（離せば "
+                    + Action.label(this, longAction, appOf(code, false)) + "）");
+            return;
         }
-        Prefs.note(label(code) + " 長押し → " + (next ? "次の曲へ" : "前の曲へ"));
+
+        // 超長押しが無いなら待つ理由が無い。その場で実行する。
+        fire(code, false, true);
 
         if (REPEAT_MS > 0) {
             handler.postDelayed(longPressTask, REPEAT_MS);
         }
+    }
+
+    /** 超長押しの時間に達した。ここまで来たら離すのを待たずに実行する。 */
+    private void onSuperPress() {
+        if (!armed || stage != STAGE_LONG) {
+            return;
+        }
+        fire(heldKey, true, true);
+    }
+
+    /**
+     * 割り当てられた動作を実行する。
+     *
+     * @param buzz 手応えを返すか。長押しを預かった場合は、達した時点で返してあるので false。
+     */
+    private void fire(int code, boolean superPress, boolean buzz) {
+        stage = STAGE_DONE;
+        final int action = superPress ? superAction : longAction;
+        if (action == Action.NONE) {
+            return;
+        }
+        if (buzz && prefs.vibrate()) {
+            Media.buzz(this, Action.pattern(action));
+        }
+        final String what = Action.run(this, audio, action, appOf(code, superPress));
+        Prefs.note(label(code) + (superPress ? " 超長押し → " : " 長押し → ") + what);
+    }
+
+    /** このトリガーで起動するアプリ。 */
+    private String appOf(int code, boolean superPress) {
+        return prefs.appPackage(code == KeyEvent.KEYCODE_VOLUME_UP, superPress);
+    }
+
+    /** 長押しに達してから超長押しに達するまでの残り時間。 */
+    private long superDelayMs() {
+        return Math.max(Prefs.SUPER_GAP_MIN, prefs.superThresholdMs() - prefs.thresholdMs());
     }
 
     // ------------------------------------------------------------------
@@ -339,13 +423,16 @@ public class VolzzService extends AccessibilityService {
 
     private void cancelPending() {
         handler.removeCallbacks(longPressTask);
+        handler.removeCallbacks(superPressTask);
     }
 
     private void reset() {
         armed = false;
         heldKey = 0;
-        longFired = false;
+        stage = STAGE_SHORT;
         volumeOnly = false;
+        longAction = Action.NONE;
+        superAction = Action.NONE;
     }
 
     private static String label(int code) {
