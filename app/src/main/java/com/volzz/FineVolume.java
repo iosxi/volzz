@@ -71,7 +71,8 @@ final class FineVolume {
         int saved = prefs.fineLevel();
         if (saved >= 0 && hwIndex() == prefs.fineLastHwIndex()) {
             // 前回 volzz が置いた状態のままなら、細かい位置まで復元する
-            level = FineScale.clampLevel(saved, steps);
+            // （保存したときと段階数が違えば、同じ音量になる段へ移す）
+            level = FineScale.rescaleLevel(saved, prefs.fineLevelSteps(), steps);
         }
         apply(level);
     }
@@ -155,7 +156,7 @@ final class FineVolume {
      * 連打したときだけ大股にする。
      *
      * volzz では長押しが曲送りなので、voom 単体のときのような「押しっぱなしで加速」は
-     * 使えない。150 段のとき端から端まで 1 段ずつでは苦行なので、
+     * 使えない。70 段のとき端から端まで 1 段ずつでは苦行なので、
      * 続けて押している間だけ歩幅を広げる。押すのをやめれば 1 段刻みに戻る。
      */
     private int accelerate(int direction) {
@@ -288,7 +289,7 @@ final class FineVolume {
 
         verifyGain(t.gainDb);
 
-        prefs.setFineLevel(level);
+        prefs.setFineLevel(level, steps);
         prefs.setFineLastHwIndex(t.hwIndex);
         Prefs.fineLastDetail = String.format("%d/%d 段 hw=%d gain=%.2fdB%s 合計=%.2fdB",
                 level, steps, t.hwIndex, t.gainDb,

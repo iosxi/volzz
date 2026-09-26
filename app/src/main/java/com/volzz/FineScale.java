@@ -1,7 +1,7 @@
 package com.volzz;
 
 /**
- * 細かい段階（15〜150）と、実際に端末へ出す「ハード段 + エフェクトの負ゲイン」の対応。
+ * 細かい段階（15〜70）と、実際に端末へ出す「ハード段 + エフェクトの負ゲイン」の対応。
  *
  * 目標の音量を dB で決め、その目標以上でいちばん近いハード段を選び、
  * 足りない分（必ず 0 以下）をエフェクトの負ゲインで埋める。
@@ -35,8 +35,9 @@ final class FineScale {
     static final float FLOOR_DB = -66f;
 
     static final int MIN_STEPS = 15;
-    static final int MAX_STEPS = 150;
-    static final int DEFAULT_STEPS = 100;
+    /** v13 までは 150 だったが、使ってみると 70 で足りた。 */
+    static final int MAX_STEPS = 70;
+    static final int DEFAULT_STEPS = 70;
 
     /** 端末に実際に出す値。level 0 は消音（ハード段 0）。 */
     static final class Target {
@@ -99,6 +100,21 @@ final class FineScale {
         if (steps <= 1) return 0f;
         float t = (float) (level - 1) / (float) (steps - 1);
         return floorDb + (0f - floorDb) * t;
+    }
+
+    /**
+     * 別の段階数で保存された level を、同じ音量のまま今の段階数へ移す。
+     *
+     * 段階数の上限を下げた版へ更新したとき、100 段で 40 段目にいた人を
+     * そのまま 70 段の 40 段目にすると音が大きく跳ねる。それを防ぐ。
+     * 保存側の段階数は今の上限を超えていてよいので、ここでは丸めない。
+     */
+    static int rescaleLevel(int level, int fromSteps, int toSteps) {
+        toSteps = clampSteps(toSteps);
+        if (level <= 0) return 0;
+        if (fromSteps <= 1) return toSteps;
+        float t = (float) (level - 1) / (float) (fromSteps - 1);
+        return clampLevel(1 + Math.round(t * (toSteps - 1)), toSteps);
     }
 
     /**

@@ -22,6 +22,7 @@ public final class Prefs {
     private static final String K_FINE = "fine_enabled";
     private static final String K_FINE_STEPS = "fine_steps";
     private static final String K_FINE_LEVEL = "fine_level";
+    private static final String K_FINE_LEVEL_STEPS = "fine_level_steps";
     private static final String K_FINE_LAST_HW = "fine_last_hw";
 
     public static final int THRESHOLD_MIN = 250;
@@ -201,8 +202,19 @@ public final class Prefs {
         return sp.getInt(K_FINE_LEVEL, -1);
     }
 
-    public void setFineLevel(int value) {
-        sp.edit().putInt(K_FINE_LEVEL, value).apply();
+    /**
+     * {@link #fineLevel()} を保存したときの段階数。
+     *
+     * v13 までは level だけを保存していたので、そのときは保存済みの段階数
+     * （一度も変えていなければ当時の既定 100）を使う。段階数の上限を下げたので、
+     * 読むときに丸めてはいけない。
+     */
+    public int fineLevelSteps() {
+        return sp.getInt(K_FINE_LEVEL_STEPS, sp.getInt(K_FINE_STEPS, 100));
+    }
+
+    public void setFineLevel(int value, int steps) {
+        sp.edit().putInt(K_FINE_LEVEL, value).putInt(K_FINE_LEVEL_STEPS, steps).apply();
     }
 
     /** 前回 volzz が置いたハード段。復元してよいかの判定に使う。 */
