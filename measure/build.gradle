@@ -1,0 +1,27 @@
+plugins {
+    id 'com.android.application'
+}
+
+// volzz の「細かい音量」が本当に音に効いているかを、スピーカーとマイクで測る道具。
+// 本体とは別アプリにしている。マイクの権限を volzz 本体に持たせないため。
+android {
+    namespace 'com.volzz.measure'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.volzz.measure'
+        minSdk 28
+        targetSdk 36
+        versionCode 1
+        versionName '1'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
