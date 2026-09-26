@@ -12,6 +12,27 @@
         <item name="android:textColor">#FF3F51B5</item>
     </style>
 
+    <!-- 「詳しく ▸」。押すと直後の折り畳みを開閉する。指で押しやすいよう上下に余白を取る。 -->
+    <style name="More">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:paddingEnd">24dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">#FF3F51B5</item>
+        <item name="android:text">@string/more_open</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+    </style>
+
+    <!-- 折り畳まれる中身。既定は閉じている。 -->
+    <style name="MoreBody">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:visibility">gone</item>
+    </style>
+
     <style name="Hint">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>

@@ -85,8 +85,28 @@
             android:textSize="16sp" />
 
         <TextView
+            android:id="@+id/vibrate_warning"
+            style="@style/Hint"
+            android:text="@string/vibrate_off_warning"
+            android:textColor="#FFC62828"
+            android:visibility="gone" />
+
+        <TextView
             style="@style/Hint"
             android:text="@string/vibrate_desc" />
+
+        <TextView
+            android:id="@+id/vibrate_more_toggle"
+            style="@style/More" />
+
+        <LinearLayout
+            android:id="@+id/vibrate_more"
+            style="@style/MoreBody">
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/vibrate_more" />
+        </LinearLayout>
 
         <!-- 割り当て -->
         <TextView
@@ -120,6 +140,19 @@
         <TextView
             style="@style/Hint"
             android:text="@string/assign_desc" />
+
+        <TextView
+            android:id="@+id/assign_more_toggle"
+            style="@style/More" />
+
+        <LinearLayout
+            android:id="@+id/assign_more"
+            style="@style/MoreBody">
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/assign_more" />
+        </LinearLayout>
 
         <!-- 細かい音量 -->
         <TextView
@@ -166,6 +199,19 @@
             style="@style/Hint"
             android:text="@string/fine_desc" />
 
+        <TextView
+            android:id="@+id/fine_more_toggle"
+            style="@style/More" />
+
+        <LinearLayout
+            android:id="@+id/fine_more"
+            style="@style/MoreBody">
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/fine_desc_more" />
+        </LinearLayout>
+
         <!-- 長押し時間 -->
         <TextView
             style="@style/SectionTitle"
@@ -211,33 +257,64 @@
             style="@style/Hint" />
 
         <TextView
-            android:id="@+id/super_threshold_desc"
-            style="@style/Hint" />
+            style="@style/Hint"
+            android:text="@string/super_threshold_desc" />
 
-        <!-- 短押しの扱い -->
+        <TextView
+            android:id="@+id/super_threshold_more_toggle"
+            style="@style/More" />
+
+        <LinearLayout
+            android:id="@+id/super_threshold_more"
+            style="@style/MoreBody">
+
+            <TextView
+                android:id="@+id/super_threshold_more_text"
+                style="@style/Hint" />
+        </LinearLayout>
+
+        <!-- 短押しの扱い（設計の理由だけなので、まるごと畳む） -->
         <TextView
             style="@style/SectionTitle"
             android:text="@string/mode_title" />
 
         <TextView
-            style="@style/Hint"
-            android:text="@string/mode_desc" />
+            android:id="@+id/mode_more_toggle"
+            style="@style/More" />
 
-        <!-- 動作確認 -->
+        <LinearLayout
+            android:id="@+id/mode_more"
+            style="@style/MoreBody">
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/mode_desc" />
+        </LinearLayout>
+
+        <!-- 動作確認（困ったときに開くもの） -->
         <TextView
             style="@style/SectionTitle"
             android:text="@string/diag_title" />
 
         <TextView
-            android:id="@+id/diag"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="14sp" />
+            android:id="@+id/diag_more_toggle"
+            style="@style/More" />
 
-        <TextView
-            style="@style/Hint"
-            android:text="@string/diag_desc" />
+        <LinearLayout
+            android:id="@+id/diag_more"
+            style="@style/MoreBody">
+
+            <TextView
+                android:id="@+id/diag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/diag_desc" />
+        </LinearLayout>
 
         <!-- 権限 -->
         <TextView
@@ -247,6 +324,19 @@
         <TextView
             style="@style/Hint"
             android:text="@string/perm_desc" />
+
+        <TextView
+            android:id="@+id/perm_more_toggle"
+            style="@style/More" />
+
+        <LinearLayout
+            android:id="@+id/perm_more"
+            style="@style/MoreBody">
+
+            <TextView
+                style="@style/Hint"
+                android:text="@string/perm_more" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

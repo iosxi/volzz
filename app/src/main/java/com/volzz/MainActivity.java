@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
 
     private TextView status;
     private TextView diag;
+    private TextView vibrateWarning;
     private Button openSettings;
     private Switch enabled;
     private Switch onlyWhilePlaying;
@@ -96,8 +97,16 @@ public class MainActivity extends Activity {
         superThreshold = findViewById(R.id.super_threshold);
         superThresholdLabel = findViewById(R.id.super_threshold_label);
         superThresholdDetail = findViewById(R.id.super_threshold_detail);
-        ((TextView) findViewById(R.id.super_threshold_desc)).setText(
-                getString(R.string.super_threshold_desc, Prefs.SUPER_GAP_MIN));
+        ((TextView) findViewById(R.id.super_threshold_more_text)).setText(
+                getString(R.string.super_threshold_more, Prefs.SUPER_GAP_MIN));
+        vibrateWarning = findViewById(R.id.vibrate_warning);
+        wireMore(R.id.vibrate_more_toggle, R.id.vibrate_more);
+        wireMore(R.id.assign_more_toggle, R.id.assign_more);
+        wireMore(R.id.fine_more_toggle, R.id.fine_more);
+        wireMore(R.id.super_threshold_more_toggle, R.id.super_threshold_more);
+        wireMore(R.id.mode_more_toggle, R.id.mode_more);
+        wireMore(R.id.diag_more_toggle, R.id.diag_more);
+        wireMore(R.id.perm_more_toggle, R.id.perm_more);
         fineStatus = findViewById(R.id.fine_status);
         fineEnabled = findViewById(R.id.fine_enabled);
         fineSteps = findViewById(R.id.fine_steps);
@@ -448,6 +457,25 @@ public class MainActivity extends Activity {
     }
 
     /**
+     * 「詳しく ▸」を押すたびに、すぐ下の折り畳みを開閉する。
+     *
+     * 設計の理由や細かい注意は一度読めば済むので、既定では閉じておく。
+     * 開いた状態は覚えない（画面を開き直せばまた閉じている）。
+     */
+    private void wireMore(int toggleId, int bodyId) {
+        final TextView toggle = findViewById(toggleId);
+        final View body = findViewById(bodyId);
+        toggle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final boolean open = body.getVisibility() != View.VISIBLE;
+                body.setVisibility(open ? View.VISIBLE : View.GONE);
+                toggle.setText(open ? R.string.more_close : R.string.more_open);
+            }
+        });
+    }
+
+    /**
      * ステータスバーとナビゲーションバーの分だけ余白を空ける。
      *
      * targetSdk 35 以降のアプリは端から端まで描画する（edge-to-edge）のが既定に
@@ -512,11 +540,12 @@ public class MainActivity extends Activity {
             showAssign(i);
         }
 
+        // 端末側で切られていると volzz の振動も鳴らない。原因がここだと分かるように。
+        // 動作確認は折り畳まれているので、振動のスイッチのすぐ下に出す。
+        vibrateWarning.setVisibility(prefs.vibrate() && Prefs.systemVibrationOff(this)
+                ? View.VISIBLE : View.GONE);
+
         final StringBuilder sb = new StringBuilder();
-        if (prefs.vibrate() && Prefs.systemVibrationOff(this)) {
-            // 端末側で切られていると volzz の振動も鳴らない。原因がここだと分かるように。
-            sb.append(getString(R.string.vibrate_off_warning)).append('\n');
-        }
         sb.append(getString(R.string.diag_count, Prefs.keyEventCount));
         sb.append('\n').append(getString(R.string.diag_count_dark, Prefs.screenOffKeyCount));
         sb.append('\n').append(getString(R.string.diag_count_keep_top, Prefs.keepTopCount));
